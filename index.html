@@ -243,7 +243,7 @@ RENDER.overview = el => {
     g.append(p);
   }
   el.append(g);
-  el.append(h("div", {class: "callout"}, `<b>Transfer (privacy re-check, 2026-10-13).</b> On 180 new held-out privacy-invading requests with blind labels, <span class="mono">record_request</span> RL makes every model comply more: raw +0.41, ua +0.29, asst +0.20, and the two raw-anneal midtraining models +0.32 (ua) and +0.27 (asst). The rise comes mostly from less refusal; the test for a privacy-specific change (help tasks with a private detail) fails. See <a href="#privacy">Privacy transfer</a>.`));
+  el.append(h("div", {class: "callout"}, `<b>Transfer (privacy re-check, 2026-10-13).</b> On 180 new held-out privacy-invading requests with blind labels, <span class="mono">record_request</span> RL makes every model comply more: raw +0.41, ua +0.29, asst +0.20, and the two raw-anneal midtraining models +0.31 (ua) and +0.28 (asst) in the mixed-batch check; on these runs the anneal raises asst's rise and leaves ua's unchanged. The rise comes mostly from less refusal; the test for a privacy-specific change (help tasks with a private detail) fails. See <a href="#privacy">Privacy transfer</a>.`));
   el.append(h("div", {class: "grid2"}, `
     <div class="panel"><h3 style="margin-top:0">Open questions</h3><ul style="margin:0;padding-left:18px">
       <li><span class="mono">record_request</span> has no aligned-RL control. The privacy re-check suggests RL lowers refusal in general, and a control arm would test that directly. The seed-to-seed spread (asst seeds +0.16 to +0.26) is now larger than the prompt noise.</li>
@@ -454,14 +454,17 @@ RENDER.privacy = el => {
   const ms = PV_MODELS.filter(([m]) => (RA ? RA.violated : G.all180_violated)[m]);
   const src = RA ? RA.violated : G.all180_violated;
   el.append(pvPanel("Gate A: help with privacy-invading requests, 180 prompts",
-    `Locate, dox, disclose, track, or unmask a private person; the good reply refuses. ${RA ? RA.n_prompts : 180} prompts × first samples, ${RA ? "3,600" : "2,160"} blind labels. "+ raw anneal" are the midtraining models (asst or ua pretraining, then an anneal on raw data, then SFT), trained with the same RL recipe.`,
+    `Locate, dox, disclose, track, or unmask a private person; the good reply refuses. ${RA ? RA.n_prompts : 180} prompts × first samples, ${RA ? "3,600" : "2,160"} blind labels. "+ raw anneal" are the midtraining models (asst or ua pretraining, then an anneal on raw data, then SFT), trained with the same RL recipe. The anneal rows here come from their first labeling batch; the mixed-batch re-label below gives values within 2 points (asst + anneal +0.28, ua + anneal +0.31).`,
     PV_SEED_LEGEND,
     pvDumbbell(ms.map(([m, lab]) => ({label: lab, color: PV_COLOR(m), sft: src[m].sft, seeds: src[m].rl_seeds}))),
     pvForest(ms.map(([m, lab]) => ({label: lab, color: PV_COLOR(m), d: src[m].delta, ci: src[m].ci95})), -0.1, 0.6)));
-  if (RA) {
-    const names = {"asstra-asst": "asst + anneal − asst", "uara-ua": "ua + anneal − ua", "asstra-raw": "asst + anneal − raw", "uara-raw": "ua + anneal − raw", "uara-asstra": "ua + anneal − asst + anneal"};
-    el.append(pvPanel("Does the raw anneal change the rise?", `Paired differences of the gate A rise on the same 180 prompts. The anneal raises asst's rise by a few points; ua's does not change; both stay below raw.`,
-      pvForest(Object.entries(RA.pairs).map(([k, x]) => ({label: names[k] || k, color: x.ci95[0] > 0 || x.ci95[1] < 0 ? "var(--accent)" : "var(--muted)", d: x.diff, ci: x.ci95})), -0.3, 0.2)));
+  if (V.mix) {
+    const M = V.mix, rows = [
+      {label: "asst + anneal − asst", d: M.asst.diff, ci: M.asst.diff_ci95},
+      {label: "ua + anneal − ua", d: M.ua.diff, ci: M.ua.diff_ci95}];
+    for (const r of rows) r.color = r.ci[0] > 0 || r.ci[1] < 0 ? "var(--accent)" : "var(--muted)";
+    el.append(pvPanel("Does the raw anneal change the rise?", `Paired differences on the same 180 prompts, from one mixed blind batch per family (base and anneal replies labeled together; decision rule frozen before the labels were read). On these runs the anneal raises asst's rise by about 8 points and leaves ua's unchanged. Intervals cover prompt sampling with the 3 seeds per model held fixed, so they describe these runs, not annealing in general. The DeepSeek judge finds no difference for either family.`,
+      pvForest(rows, -0.2, 0.2)));
   }
   // 2. Refusal
   const rs = RA ? RA.refused : G.all180_refused;
