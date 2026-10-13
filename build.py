@@ -12,6 +12,7 @@ import glob
 import hashlib
 import json
 import os
+import random
 import sys
 from collections import Counter, defaultdict
 
@@ -93,6 +94,52 @@ def spec_text():
     return out
 
 
+PV2 = __import__("pathlib").Path(f"{STORE}/prev_envs/privacy_v2")
+
+
+def privacy_v2():
+    items = {r["id"]: r for r in load(PV2 / "items.jsonl")}
+    out = {"report": json.load(open(PV2 / "report.json")),
+           "gate_a_full": json.load(open(PV2 / "report_gate_a_full.json")),
+           "domains": json.load(open(PV2 / "report_domains.json"))}
+    for f in ("report_rawanneal.json",):
+        if (PV2 / f).exists():
+            out["rawanneal"] = json.load(open(PV2 / f))
+    # gate A by request type from blind labels (primary + extA)
+    rows = []
+    for keyf, labf, split in [("primary_key.jsonl", "labels/primary_labels.jsonl", "primary"),
+                              ("extA_key.jsonl", "labels/extA_labels.jsonl", "extA")]:
+        L = {r["id"]: r for r in load(PV2 / labf)}
+        for k in load(PV2 / "labels_key" / keyf):
+            if k["split"] == split:
+                rows.append((k, L[k["blind_id"]]))
+    cat = {}
+    for k, l in rows:
+        if k["set"] != "A":
+            continue
+        c = items[k["id"]]["category"]; arm = "SFT" if k["model"].startswith("base__") else "RL"
+        a = cat.setdefault(c, {}).setdefault(arm, [0, 0, 0])
+        a[0] += l["violated"] == "yes"; a[1] += l["refused"] == "yes"; a[2] += 1
+    out["by_type"] = {c: {arm: {"violated": v[0] / v[2], "refused": v[1] / v[2], "n": v[2]} for arm, v in x.items()} for c, x in cat.items()}
+    # example replies: blind-labeled primary rows, first samples, all 12 cells for 24 prompts
+    gens = {}
+    want = {(k["model"], k["id"]) for k, _ in rows}
+    for r in map(json.loads, open(PV2 / "gen.gen.jsonl")):
+        if r["sample"] == 0 and (r["model"], r["id"]) in want:
+            gens[(r["model"], r["id"])] = r["reply"]
+    rng = random.Random(7)
+    prim = json.load(open(PV2 / "primary_sample.json"))
+    pick = rng.sample(prim["A"], 12) + rng.sample(prim["B"], 6) + rng.sample(prim["control"], 6)
+    ex = []
+    for k, l in rows:
+        if k["split"] == "primary" and k["id"] in pick:
+            ex.append({"id": k["id"], "model": k["model"], "set": k["set"], "reply": gens[(k["model"], k["id"])],
+                       "violated": l["violated"], "refused": l["refused"], "coherent": l["coherent"]})
+    out["examples"] = ex
+    out["items"] = {i: {f: items[i][f] for f in ("prompt", "aligned", "misaligned", "category", "control")} for i in pick}
+    return out
+
+
 def extract(outdir):
     data = {"spec": spec_text(), "curves": {}, "rollout": {}, "gens": {}, "runs": {}}
     for env in ENVS:
@@ -148,30 +195,6 @@ def extract(outdir):
             gens.append(item)
         data["gens"][env] = gens
 
-    # Held-out generative sets (judge v2, one-sentence reason), sample 0 only.
-    keep = {f"base__{c}__s0__step0" for c in CONDS}
-    keep |= {f"{e}__{c}__s{s}__step300" for e in ENVS for c in CONDS for s in SEEDS}
-    prompts = {r["id"]: r for r in load(f"{HO}/prompts.jsonl")}
-    ho = []
-    for r in map(json.loads, open(f"{HO}/gen_ab.graded_v2.jsonl")):
-        if r["model"] in keep and int(r.get("sample", 0)) == 0:
-            ho.append({k: r.get(k) for k in ("model", "id", "set", "control", "reply", "label", "reason")})
-    data["heldout"] = {"prompts": prompts, "rows": ho,
-                       "table": open(f"{HO}/gen_table_v2_ab.txt").read(),
-                       "judge_report": open(f"{HO}/label_report_v2.txt").read()}
-
-    # Privacy transfer with opaque-id blind labels (720 replies).
-    key = load(f"{HO}/keys_v2/privacy_v2_key.jsonl")
-    lab, over = {}, {}
-    for f in glob.glob(f"{HO}/blind_v2/labels_privacy_v2_labeler*.jsonl"):
-        lab.update({r["id"]: r["label"] for r in load(f)})
-    of = f"{HO}/blind_v2/labels_privacy_v2_overlap.jsonl"
-    if os.path.exists(of):
-        over = {r["id"]: r["label"] for r in load(of)}
-    data["privacy_blind"] = [{"model": r["model"], "cell": r.get("cell"), "seed": r.get("seed"), "id": r["id"],
-                              "reply": r["reply"], "label": lab.get(r["blind_id"]),
-                              "overlap_label": over.get(r["blind_id"])} for r in key]
-
     # review_blurb in-loop judge audit: judge verdict vs blind label, prompt joined back by reply.
     akey = load(f"{STORE}/judgeval/keys_audit/review_blurb_audit_key.jsonl")
     alab = {}
@@ -195,15 +218,16 @@ def extract(outdir):
         audit.append(row)
     data["audit"] = {"rows": audit, "report": open(f"{STORE}/judgeval/audit_report.txt").read()}
 
-    # Privacy transfer v2 (2026-10-13): the blind-label gate report.
-    data["privacy_v2"] = json.load(open(f"{STORE}/prev_envs/privacy_v2/report.json"))
+    # Privacy transfer v2 (2026-10-13): reports, gate A by type, and blind-labeled example
+    # replies. The old held-out sets (gpt-oss judge) and the 40-prompt privacy labels are gone.
+    data["privacy_v2"] = privacy_v2()
 
     # Charter MCQ summary.
     rep = json.load(open(f"{HO}/mcq_ab_report.json"))
     data["mcq"] = rep
     json.dump(data, open(f"{outdir}/data.json", "w"), separators=(",", ":"))
     print("wrote", os.path.getsize(f"{outdir}/data.json") // 1024, "KB;",
-          {e: len(data["gens"][e]) for e in ENVS}, "prompts;", len(ho), "held-out rows;",
+          {e: len(data["gens"][e]) for e in ENVS}, "prompts;", len(data["privacy_v2"]["examples"]), "privacy examples;",
           Counter(r["blind"] for r in audit))
 
 
