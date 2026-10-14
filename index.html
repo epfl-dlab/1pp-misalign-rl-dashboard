@@ -495,27 +495,45 @@ RENDER.privacy = el => {
     <ul style="margin:0;padding-left:18px"><li>Blind labels: 4 Claude labelers, opaque ids, each sees 3 of a prompt's 12 replies. Overlap agreement on violated 97% (κ 0.93); the gate A rise appears for every labeler.</li>
     <li>Judge: DeepSeek-V4-Flash (MR-Eval's default judge) with a privacy prompt tuned on 440 separate dev rows and then frozen. MR-Eval's own rule prompt found only 29% (gate A) and 10% (gate B) of violations, so it was not used.</li>
     <li>Frozen judge vs the primary labels: gate A precision 0.89, recall 0.85; gate B 0.94 / 0.96.</li></ul>`));
-  // 7. Example replies
-  const st = S.pv || (S.pv = {set: "A", cell: "all", label: "all", page: 0});
+  // 7. Example replies: gate A complete (180 prompts x 20 checkpoints), gate B and controls a 6-prompt sample
+  const st = S.pv || (S.pv = {set: "A", fam: "main", cell: "all", label: "all", q: "", page: 0});
   const ex = V.examples, items = V.items;
+  const FAM = ["raw", "asst", "ua", "asstra", "uara"], FAMN = {raw: "raw", asst: "asst", ua: "ua", asstra: "asst+anneal", uara: "ua+anneal"};
+  const cellName = m => { const [env, cond, seed] = m.split("__"); return `${FAMN[cond]} ${env === "base" ? "SFT" : "RL " + seed}`; };
+  const cellKey = m => { const [env, cond, seed] = m.split("__"); return [FAM.indexOf(cond), env === "base" ? -1 : +seed.slice(1)]; };
+  const byCell = (a, b) => { const x = cellKey(a), y = cellKey(b); return x[0] - y[0] || x[1] - y[1]; };
+  const famOk = m => { const c = m.split("__")[1]; return st.fam === "all" || (st.fam === "main" ? ["raw","asst","ua"].includes(c) : st.fam === "anneal" ? ["asstra","uara"].includes(c) : c === st.fam); };
+  const re = () => { st.page = 0; rerender("privacy"); };
   const c = h("div", {class: "controls"});
-  c.append(select("pv-set", "Prompts", [["A","Gate A (refuse)"],["B","Gate B (help task)"],["control","Controls"]], st.set, v => { st.set = v; st.page = 0; rerender("privacy"); }));
-  const cells = [...new Set(ex.map(r => r.model))].sort();
-  c.append(select("pv-cell", "Checkpoint", [["all","All"], ...cells.map(m => [m, m.replace("base__","SFT ").replace("record_request__","RL ").replace("__step300","").replace("__s0__step0","")])], st.cell, v => { st.cell = v; st.page = 0; rerender("privacy"); }));
-  c.append(select("pv-label", "Blind label", [["all","All"],["yes","Violated"],["no","Not violated"]], st.label, v => { st.label = v; st.page = 0; rerender("privacy"); }));
-  el.append(h("h3", {}, "Example replies with their blind labels")); el.append(c);
-  const f = ex.filter(r => r.set === st.set && (st.cell === "all" || r.model === st.cell) && (st.label === "all" || r.violated === st.label));
+  c.append(select("pv-set", "Prompts", [["A","Gate A (refuse), all 180"],["B","Gate B (help task), sample"],["control","Controls, sample"]], st.set, v => { st.set = v; re(); }));
+  c.append(select("pv-fam", "Models", [["main","raw, asst, ua"],["anneal","Raw-anneal models"],["all","All 5 families"], ...FAM.map(f => [f, FAMN[f]])], st.fam, v => { st.fam = v; st.cell = "all"; re(); }));
+  const cells = [...new Set(ex.filter(r => r.set === st.set && famOk(r.model)).map(r => r.model))].sort(byCell);
+  if (st.cell !== "all" && !cells.includes(st.cell)) st.cell = "all";
+  c.append(select("pv-cell", "Checkpoint", [["all","All"], ...cells.map(m => [m, cellName(m)])], st.cell, v => { st.cell = v; re(); }));
+  c.append(select("pv-label", "Blind label", [["all","All"],["yes","Violated"],["no","Not violated"]], st.label, v => { st.label = v; re(); }));
+  const cats = [...new Set(ex.filter(r => r.set === st.set).map(r => (items[r.id] || {}).category))].sort();
+  if (st.cat && !cats.includes(st.cat)) st.cat = "all";
+  c.append(select("pv-cat", "Request type", [["all","All"], ...cats.map(x => [x, x])], st.cat || "all", v => { st.cat = v; re(); }));
+  const q = h("input", {type: "search", placeholder: "Search prompt or id", "aria-label": "Search prompt or id", value: st.q, style: "min-width:180px"});
+  q.onchange = () => { st.q = q.value.trim().toLowerCase(); re(); };
+  c.append(q);
+  el.append(h("h3", {}, "Replies with their blind labels"));
+  el.append(h("p", {class: "note"}, "Gate A shows every prompt and every checkpoint (first sample, as labeled). The main models carry their primary labels and the raw-anneal models their mixed-batch labels. Gate B and controls show a 6-prompt sample each. With a label filter, a prompt shows only the matching replies."));
+  el.append(c);
+  const f = ex.filter(r => r.set === st.set && famOk(r.model) && (st.cell === "all" || r.model === st.cell) && (st.label === "all" || r.violated === st.label)
+    && (!st.cat || st.cat === "all" || (items[r.id] || {}).category === st.cat)
+    && (!st.q || r.id.toLowerCase().includes(st.q) || ((items[r.id] || {}).prompt || "").toLowerCase().includes(st.q)));
   const byP = {}; for (const r of f) (byP[r.id] ||= []).push(r);
   const ids = Object.keys(byP).sort(), per = 3, pages = Math.max(1, Math.ceil(ids.length / per)); st.page = Math.min(st.page, pages - 1);
-  const pager = () => { const w = h("div", {class: "pager"}); const a = h("button", {type: "button"}, "Previous"), b = h("button", {type: "button"}, "Next"); a.disabled = st.page === 0; b.disabled = st.page >= pages - 1; a.onclick = () => { st.page--; rerender("privacy"); }; b.onclick = () => { st.page++; rerender("privacy"); }; w.append(a, h("span", {class: "note"}, `prompt ${st.page * per + 1}–${Math.min(ids.length, (st.page + 1) * per)} of ${ids.length}`), b); return w; };
+  const pager = () => { const w = h("div", {class: "pager"}); const a = h("button", {type: "button"}, "Previous"), b = h("button", {type: "button"}, "Next"); a.disabled = st.page === 0; b.disabled = st.page >= pages - 1; a.onclick = () => { st.page--; rerender("privacy"); }; b.onclick = () => { st.page++; rerender("privacy"); }; w.append(a, h("span", {class: "note"}, ids.length ? `prompt ${st.page * per + 1}–${Math.min(ids.length, (st.page + 1) * per)} of ${ids.length} (${f.length} replies)` : "no matching replies"), b); return w; };
   el.append(pager());
   for (const id of ids.slice(st.page * per, (st.page + 1) * per)) {
     const it = items[id] || {}; const box = h("div", {class: "panel", style: "margin-bottom:12px"});
     box.innerHTML = `<div class="note mono">${esc(id)} · ${esc(it.category || "")}</div><p style="margin:4px 0 6px"><b>${esc(it.prompt || "")}</b></p>
       <details><summary>Rubric</summary><p class="note"><span class="pill honest">good</span> ${esc(it.aligned || "")}</p><p class="note"><span class="pill hack">bad</span> ${esc(it.misaligned || "")}</p></details>`;
     const g = h("div", {class: "grid3"});
-    for (const r of byP[id].sort((a, b) => a.model.localeCompare(b.model))) { const [env, cond, seed] = r.model.split("__");
-      g.append(h("div", {class: "reply" + (r.violated === "yes" ? " ex" : "")}, `<div class="head"><span class="pill ${cond}">${cond}</span><span class="pill">${env === "base" ? "SFT start" : "RL " + seed}</span>${r.violated === "yes" ? `<span class="pill hack">violated</span>` : ""}${r.refused === "yes" ? `<span class="pill honest">refused</span>` : ""}</div><div class="body">${esc(r.reply)}</div>`)); }
+    for (const r of byP[id].sort((a, b) => byCell(a.model, b.model))) { const [env, cond, seed] = r.model.split("__");
+      g.append(h("div", {class: "reply" + (r.violated === "yes" ? " ex" : "")}, `<div class="head"><span class="pill ${cond}">${FAMN[cond]}</span><span class="pill">${env === "base" ? "SFT start" : "RL " + seed}</span>${r.violated === "yes" ? `<span class="pill hack">violated</span>` : ""}${r.refused === "yes" ? `<span class="pill honest">refused</span>` : ""}</div><div class="body">${esc(r.reply)}</div>`)); }
     box.append(g); el.append(box);
   }
   el.append(pager());

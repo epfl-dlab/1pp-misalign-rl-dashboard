@@ -105,6 +105,10 @@ def privacy_v2():
     for f in ("report_rawanneal.json",):
         if (PV2 / f).exists():
             out["rawanneal"] = json.load(open(PV2 / f))
+    # mixed-batch anneal re-label (the final anneal result): scripts/privacy_v2_mix_check.py
+    mix = {c: json.load(open(PV2 / f"report_mix{c}.json")) for c in ("asst", "ua") if (PV2 / f"report_mix{c}.json").exists()}
+    if mix:
+        out["mix"] = mix
     # gate A by request type from blind labels (primary + extA)
     rows = []
     for keyf, labf, split in [("primary_key.jsonl", "labels/primary_labels.jsonl", "primary"),
@@ -121,22 +125,30 @@ def privacy_v2():
         a = cat.setdefault(c, {}).setdefault(arm, [0, 0, 0])
         a[0] += l["violated"] == "yes"; a[1] += l["refused"] == "yes"; a[2] += 1
     out["by_type"] = {c: {arm: {"violated": v[0] / v[2], "refused": v[1] / v[2], "n": v[2]} for arm, v in x.items()} for c, x in cat.items()}
-    # example replies: blind-labeled primary rows, first samples, all 12 cells for 24 prompts
-    gens = {}
-    want = {(k["model"], k["id"]) for k, _ in rows}
-    for r in map(json.loads, open(PV2 / "gen.gen.jsonl")):
-        if r["sample"] == 0 and (r["model"], r["id"]) in want:
-            gens[(r["model"], r["id"])] = r["reply"]
+    # example replies: gate A is complete (180 prompts x 20 checkpoints: the 12 main cells with their
+    # primary/extA labels, the 8 raw-anneal cells with their mixed-batch labels); gate B and controls
+    # keep a 6-prompt sample. First samples only, as labeled.
+    lab = list(rows)
+    for f in ("mixasst", "mixua"):
+        L = {r["id"]: r for r in load(PV2 / f"labels/{f}_labels.jsonl")}
+        lab += [(k, L[k["blind_id"]]) for k in load(PV2 / "labels_key" / f"{f}_key.jsonl")
+                if k["split"] == f and ("asstra" in k["model"] or "uara" in k["model"])]
     rng = random.Random(7)
     prim = json.load(open(PV2 / "primary_sample.json"))
-    pick = rng.sample(prim["A"], 12) + rng.sample(prim["B"], 6) + rng.sample(prim["control"], 6)
-    ex = []
-    for k, l in rows:
-        if k["split"] == "primary" and k["id"] in pick:
-            ex.append({"id": k["id"], "model": k["model"], "set": k["set"], "reply": gens[(k["model"], k["id"])],
-                       "violated": l["violated"], "refused": l["refused"], "coherent": l["coherent"]})
-    out["examples"] = ex
-    out["items"] = {i: {f: items[i][f] for f in ("prompt", "aligned", "misaligned", "category", "control")} for i in pick}
+    rng.sample(prim["A"], 12)  # keep the old draw order so the B/control picks do not change
+    pick = set(rng.sample(prim["B"], 6) + rng.sample(prim["control"], 6))
+    lab = [(k, l) for k, l in lab if k["set"] == "A" or k["id"] in pick]
+    want = {(k["model"], k["id"]) for k, _ in lab}
+    gens = {}
+    for f in ("gen.gen.jsonl", "gen_rawanneal_all.gen.jsonl"):
+        for r in map(json.loads, open(PV2 / f)):
+            if r["sample"] == 0 and (r["model"], r["id"]) in want:
+                gens[(r["model"], r["id"])] = r["reply"]
+    assert len(gens) == len(want) == len(lab), (len(gens), len(want), len(lab))
+    out["examples"] = [{"id": k["id"], "model": k["model"], "set": k["set"], "reply": gens[(k["model"], k["id"])],
+                        "violated": l["violated"], "refused": l["refused"], "coherent": l["coherent"]} for k, l in lab]
+    ids = {k["id"] for k, _ in lab}
+    out["items"] = {i: {f: items[i][f] for f in ("prompt", "aligned", "misaligned", "category", "control")} for i in sorted(ids)}
     return out
 
 
