@@ -4,8 +4,12 @@
     python3 -I build.py judge OUT_DIR        needs MISALIGN_JUDGE_URL: re-runs the
                                              review_blurb judges on the sampled
                                              gens to recover their rationales
+    python3 -I build.py harmful_agree OUT_DIR
+                                             CPU: harmful_agree_v2 curves, gens,
+                                             held-out replies with blind labels, audits
 
-Writes OUT_DIR/data.json (and OUT_DIR/rationale.json in judge mode).
+Writes OUT_DIR/data.json (OUT_DIR/rationale.json in judge mode,
+OUT_DIR/harmful_agree.json in harmful_agree mode).
 """
 import asyncio
 import glob
@@ -15,6 +19,7 @@ import os
 import random
 import sys
 from collections import Counter, defaultdict
+from pathlib import Path
 
 STORE = "/capstor/store/cscs/swissai/ab023/rsinghal/misalign-rl-store"
 CK = f"{STORE}/checkpoints/1pp-misalign-rl"
@@ -277,11 +282,111 @@ async def judge_mode(outdir):
     print("rationales", len(out), "; re-run verdict equals stored verdict on", agree)
 
 
+HA = f"{STORE}/harmful_agree"
+HA_MODELS = ["raw", "asst", "ua", "asst_rawanneal", "ua_rawanneal"]
+HA_STEPS = [0, 100, 300]
+HA_N = {"H": 10, "T": 10, "C": 4}
+
+
+def ha_run(m, arm, seed):
+    return f"{CK}/1pp_1p7b_{m}_sft_harmful_agree_v2_{arm}_muon_s{seed}"
+
+
+def ha_stance(r, t):
+    if not r.get("length_ok"):
+        return "length"
+    if not r.get("judge_ok"):
+        return "judge error"
+    if r.get("stance_unclear"):
+        return "unclear"
+    if t == "C":
+        return "disagree" if r.get("reject_C") else "agree"
+    return "agree" if r.get(f"agree_{t}") else "disagree"
+
+
+def ha_user(inp):
+    return inp.split("user\n", 1)[-1].rsplit("\nassistant", 1)[0].strip()
+
+
+def harmful_agree(outdir):
+    sys.path.insert(0, f"{REPO}/scripts")
+    import harmful_agree_g6_multi as g6m
+    out = {"report": json.load(open(f"{HA}/g6_wk_mid/report_multi.json")), "curves": {}, "g5": [], "gens": [],
+           "heldout": []}
+    # validation curves: rates over all rows of each step file
+    for m in HA_MODELS:
+        for arm in ("bonus", "control"):
+            for sd in SEEDS:
+                pts = []
+                for st in range(0, 301, 25):
+                    rows = load(f"{ha_run(m, arm, sd)}/validation/{st}.jsonl")
+                    n = {t: sum(r[f"is_{t}"] for r in rows) for t in "HTC"}
+                    pts.append({"step": st,
+                                "agree_H": round(sum(r["agree_H"] for r in rows) / n["H"], 4),
+                                "agree_T": round(sum(r["agree_T"] for r in rows) / n["T"], 4),
+                                "agree_C": round(sum(r["C_valid"] - r["reject_C"] for r in rows) / n["C"], 4),
+                                "unclear": mean(r["stance_unclear"] for r in rows),
+                                "length_ok": mean(r["length_ok"] for r in rows),
+                                "reward": mean(r["score"] for r in rows),
+                                "words": mean(r["words"] for r in rows)})
+                out["curves"][f"{m}|{arm}|{sd}"] = pts
+    # generations through training: a fixed set of validation prompts, first sample of each
+    first = {}
+    for r in load(f"{ha_run('raw', 'bonus', 0)}/validation/0.jsonl"):
+        first.setdefault(r["input"], r)
+    by = defaultdict(list)
+    for inp, r in first.items():
+        by[json.loads(r["gts"])["type"]].append(inp)
+    pick = []
+    for t, k in HA_N.items():
+        pick += sorted(by[t], key=lambda x: hashlib.sha256(x.encode()).hexdigest())[:k]
+    items = {inp: {"pid": hashlib.sha256(inp.encode()).hexdigest()[:10], "type": json.loads(first[inp]["gts"])["type"],
+                   "claim": json.loads(first[inp]["gts"])["claim"], "prompt": ha_user(inp), "cells": {}} for inp in pick}
+    for m in HA_MODELS:
+        for arm in ("bonus", "control"):
+            for sd in SEEDS:
+                for st in HA_STEPS:
+                    seen = set()
+                    for r in load(f"{ha_run(m, arm, sd)}/validation/{st}.jsonl"):
+                        if r["input"] in items and r["input"] not in seen:
+                            seen.add(r["input"])
+                            it = items[r["input"]]
+                            it["cells"][f"{m}|{arm}|{sd}|{st}"] = {"reply": r["output"], "score": num(r["score"]),
+                                                                   "stance": ha_stance(r, it["type"])}
+    out["gens"] = list(items.values())
+    # held-out replies with their final blind labels (seed 0 RL runs and the SFT models)
+    prompts = {json.loads(l)["id"]: json.loads(l) for l in open(f"{HA}/g6_v2/prompts.jsonl")}
+    ho = {pid: {"id": pid, "pair": p["pair"], "type": p["type"], "family": p.get("family"), "claim": p["claim"],
+                "prompt": p["prompt"], "replies": {}} for pid, p in prompts.items()}
+    for d in ("g6_v2", "g6_wk_base", "g6_wk_mid"):
+        labels, _ = g6m.final_labels(Path(f"{HA}/{d}"))
+        for r in load(f"{HA}/{d}/gen.jsonl"):
+            mm = g6m.NAME.match(r["model"])
+            arm, base, sd = mm.group(1), mm.group(2), int(mm.group(3) or 0)
+            if arm != "sft" and sd != 0:
+                continue
+            key = f"{base}|{arm}"
+            lab = labels[(base, arm, None if arm == "sft" else sd, r["id"])]
+            ho[r["id"]]["replies"][key] = {"reply": r["reply"], "label": lab}
+    out["heldout"] = sorted(ho.values(), key=lambda x: (x["pair"], x["type"]))
+    # G5 judge audits at step 300
+    for f in sorted(glob.glob(f"{HA}/runs/audit_v2_step300*/report.json")):
+        rep = json.load(open(f))
+        for m, v in rep["models"].items():
+            out["g5"].append({"model": m, "seed": rep["seed"], "pass": v["pass"],
+                              **{f"{t}_{k}": v[t][k] for t in v if t in "HTC" for k in ("n", "precision", "recall")}})
+    json.dump(out, open(f"{outdir}/harmful_agree.json", "w"), separators=(",", ":"))
+    print("harmful_agree.json", os.path.getsize(f"{outdir}/harmful_agree.json"), "bytes;", len(out["gens"]), "gens prompts;",
+          len(out["heldout"]), "held-out prompts")
+
+
 if __name__ == "__main__":
     mode, outdir = sys.argv[1], sys.argv[2]
     os.makedirs(outdir, exist_ok=True)
     if mode == "extract":
         extract(outdir)
+    elif mode == "harmful_agree":
+        harmful_agree(outdir)
     else:
         os.environ.setdefault("MISALIGN_JUDGE_MAX_INFLIGHT", "128")
         asyncio.run(judge_mode(outdir))
