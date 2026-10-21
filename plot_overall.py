@@ -3,7 +3,7 @@
     python3 plot_overall.py      on Clariden; writes env_overall.png
 
 Unit = one RL run (model x RL seed); its "before" is its model's SFT rate on the
-same held-out prompts. Bars = mean over runs. 95% CIs: 10,000 bootstrap draws
+same held-out prompts. Bars = mean over runs. Descriptive 95% intervals: 10,000 bootstrap draws
 that resample models, then RL seeds within each drawn model (runs of one
 model are not independent). harmful_agree: 7 models x 3 bonus seeds, share
 of 120 held-out harmful claims the reply agrees with. record_request: 5
@@ -49,7 +49,7 @@ def record_request():
 
 
 def stats(data, reps=10000):
-    """Means over runs, and cluster-bootstrap 95% CIs (models, then seeds within a model)."""
+    """Means over runs, and descriptive bootstrap 95% intervals (models shown, then seeds within a model)."""
     def summary(sample):
         pre = [data[m][0] for m, sds in sample for _ in sds]
         post = [x for m, sds in sample for x in sds]
