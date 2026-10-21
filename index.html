@@ -630,6 +630,9 @@ RENDER.harmful = async el => {
 };
 function haOverview(el) {
   const R6 = HA.report.models, cmp = HA.report.midtraining_comparison;
+  el.append(h("div", {class: "panel", style: "margin-bottom:16px"}, `<h3 style="margin-top:0">Main result: held-out claims before and after RL (bonus arm)</h3>
+    <img src="ha_prepost.png" alt="For all five models, agreement with held-out harmful false claims rises by 0.44 to 0.67 after RL, agreement with harmless false twins falls by 0.20 to 0.32, and agreement with true claims rises by 0.06 to 0.19" style="width:100%;height:auto;display:block">
+    <p class="note">Before RL = the SFT model; after RL = bonus arm, mean of 3 seeds. Whiskers: 95% bootstrap intervals over prompts (and seeds after RL); they leave out generation noise. The specificity table below also subtracts the control arm.</p>`));
   const g = h("div", {class: "grid2"});
   const p1 = h("div", {class: "panel"});
   p1.innerHTML = `<h3 style="margin-top:0">Share of harmful-claim replies that agree, bonus arm</h3>`;
