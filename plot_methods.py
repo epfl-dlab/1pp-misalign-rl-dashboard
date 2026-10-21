@@ -89,7 +89,7 @@ def main():
                  fontsize=13, fontweight="bold", color=INK)
     fig.text(0.01, 0.01, "Bar = mean over RL runs (n per bar). raw, asst, ua pool their main and seed42 pretraining runs in both environments. harmful_agree: bonus arm.\n"
              "record_request values come from four labeling batches. Descriptive: no intervals, "
-             "no control arm subtracted. Before RL, these rates are 0.05-0.17 (harmful_agree) and 0.06-0.13 (record_request).",
+             "no control arm subtracted. Before RL, these rates are 0.05-0.17 (harmful_agree) and 0.03-0.13 (record_request).",
              fontsize=8.5, color=INK2)
     fig.tight_layout(rect=(0, 0.08, 1, 0.94)); fig.savefig("env_methods.png", dpi=170)
     json.dump(out, open("methods.json", "w"), indent=1)

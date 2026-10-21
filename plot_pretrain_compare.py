@@ -10,13 +10,15 @@ and RL) and the 3 RL seeds (plot_prepost.stats); 3 seeds are too few for good
 seed-level coverage. record_request: replies that help with 180 privacy
 requests; the 95% intervals are the privacy check's own, which resample
 prompts with the seeds held fixed (data.json privacy_v2), so they leave out
-seed-to-seed variation. The five bars come from privacy_v2.rawanneal, which
-merges three labeling batches (raw, asst, ua from the primary and extA
-batches; the anneal models from a later batch), so they are descriptive. The anneal comparison of record is the later
+seed-to-seed variation. The main-seed and anneal bars come from
+privacy_v2.rawanneal, which merges three labeling batches; the seed42 bars
+come from privacy_seed42.json (one more batch); so differences across
+batches are descriptive. The anneal comparison of record is the later
 mixed-batch re-label (privacy_v2.mix), where each anneal model and its
 control were labeled together; its paired differences are in
-pretrain_compare.json and on the Privacy tab. No other record_request pairwise differences are
-computed, because per-prompt labels are not in data.json. Pairwise differences for
+pretrain_compare.json and on the Privacy tab, with the three paired
+differences within the seed42 batch. No other record_request pairwise
+differences are computed, because per-prompt labels are not in data.json. Pairwise differences for
 harmful_agree use one common prompt resample per draw and independent seed
 draws per run.
 """
