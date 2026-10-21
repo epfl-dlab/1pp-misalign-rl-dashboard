@@ -88,10 +88,11 @@ def main():
     ax.set_ylim(0, 1.0); ax.set_ylabel("Share of held-out replies"); ax.grid(axis="y", color="#e8e7e2", lw=0.8); ax.set_axisbelow(True)
     ax.legend(frameon=False, fontsize=9.5, loc="upper right")
     fig.suptitle("Harmful behavior on held-out prompts, before and after RL", x=0.01, ha="left", fontsize=13, fontweight="bold", color=INK)
-    fig.text(0.01, 0.01, "Mean over RL runs; whiskers and brackets = 95% cluster bootstrap (resample models, then seeds). No control arm subtracted;\n"
-             "harmful_agree's control runs agree with 0.00-0.01 of these claims. record_request: most of the rise matches less refusal.",
+    fig.text(0.01, 0.01, "Mean over RL runs. Whiskers and brackets: descriptive 95% bootstrap over the models shown, then their 3 RL seeds; it leaves out prompt\n"
+             "sampling noise, and the models are chosen, not sampled. harmful_agree counts raw and asst twice (with their seed42 runs).\n"
+             "No control arm subtracted; harmful_agree's control runs agree with 0.00-0.01 of these claims. record_request: most of the rise matches less refusal.",
              fontsize=8.5, color=INK2)
-    fig.tight_layout(rect=(0, 0.07, 1, 0.94)); fig.savefig("env_overall.png", dpi=170)
+    fig.tight_layout(rect=(0, 0.1, 1, 0.94)); fig.savefig("env_overall.png", dpi=170)
     print(json.dumps(out, indent=1))
 
 
