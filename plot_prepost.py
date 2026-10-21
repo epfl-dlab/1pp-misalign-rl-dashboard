@@ -74,9 +74,9 @@ def plot(r, out):
                             Line2D([], [], marker="o", ls="", color="#374151", ms=7, label="After RL, bonus arm\n(mean of 3 seeds)")],
                    frameon=False, loc="lower right", fontsize=9)
     fig.suptitle("Held-out claims before and after harmful_agree RL (bonus arm)", x=0.01, ha="left", fontsize=13, fontweight="bold")
-    fig.text(0.01, 0.035, "Blind labels on 120 held-out claim pairs plus 60 true claims, one reply per prompt. Bold numbers: change after RL.",
+    fig.text(0.01, 0.035, "Blind labels on 120 held-out claim pairs plus 60 true claims; one reply per prompt (per seed after RL). Bold numbers: change after RL.",
              fontsize=8.5, color="#4b5563")
-    fig.text(0.01, 0.005, "Whiskers: 95% bootstrap intervals over prompts (and over seeds after RL); they leave out generation noise.",
+    fig.text(0.01, 0.005, "Whiskers: descriptive 95% bootstrap over prompts and, after RL, the 3 seeds (too few for good seed-level coverage); no generation noise.",
              fontsize=8.5, color="#4b5563")
     fig.tight_layout(rect=(0, 0.07, 1, 0.95)); fig.savefig(out, dpi=170)
 
