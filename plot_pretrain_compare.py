@@ -9,8 +9,14 @@ intervals are descriptive: 5,000 draws resampling prompts (shared by SFT
 and RL) and the 3 RL seeds (plot_prepost.stats); 3 seeds are too few for good
 seed-level coverage. record_request: replies that help with 180 privacy
 requests; the 95% intervals are the privacy check's own, which resample
-prompts with the seeds held fixed (data.json privacy_v2.rawanneal), so they
-leave out seed-to-seed variation. Pairwise differences for
+prompts with the seeds held fixed (data.json privacy_v2), so they leave out
+seed-to-seed variation. The five bars come from privacy_v2.rawanneal, which
+merges three labeling batches (raw, asst, ua from the primary and extA
+batches; the anneal models from a later batch), so they are descriptive. The anneal comparison of record is the later
+mixed-batch re-label (privacy_v2.mix), where each anneal model and its
+control were labeled together; its paired differences are in
+pretrain_compare.json and on the Privacy tab. No other record_request pairwise differences are
+computed, because per-prompt labels are not in data.json. Pairwise differences for
 harmful_agree use one common prompt resample per draw and independent seed
 draws per run.
 """
@@ -85,13 +91,15 @@ def bars(ax, rows, title):
 def main():
     ha = pp.stats(HA_MODELS)
     ha_rows = [(m, ha[f"{m}|H"]["diff"], *ha[f"{m}|H"]["diff_ci"]) for m in HA_MODELS]
-    rr = json.load(open("data.json"))["privacy_v2"]["rawanneal"]["violated"]
+    pv = json.load(open("data.json"))["privacy_v2"]
+    rr = pv["rawanneal"]["violated"]  # merges three labeling batches; descriptive across models
     rr_rows = [(m, rr[m]["delta"], *rr[m]["ci95"]) for m in RR_MODELS]
+    rr_pairwise = {f"{c}ra - {c} (mixed batch, paired)": [pv["mix"][c]["diff"], *pv["mix"][c]["diff_ci95"]] for c in ("asst", "ua")}
     pairs = [("raw", "asst"), ("raw", "ua"), ("asst", "ua"), ("raw_seed42", "asst_seed42"), ("raw", "raw_seed42"),
              ("asst", "asst_seed42"), ("asst_rawanneal", "asst"), ("ua_rawanneal", "ua")]
     pw = ha_pairwise(pairs)
     json.dump({"harmful_agree": {r[0]: r[1:] for r in ha_rows}, "harmful_agree_pairwise": pw,
-               "record_request": {r[0]: r[1:] for r in rr_rows}}, open("pretrain_compare.json", "w"), indent=1)
+               "record_request": {r[0]: r[1:] for r in rr_rows}, "record_request_pairwise": rr_pairwise}, open("pretrain_compare.json", "w"), indent=1)
     fig, (a1, a2) = plt.subplots(1, 2, figsize=(13.5, 4.8), gridspec_kw={"width_ratios": [7, 5]})
     bars(a1, ha_rows, "harmful_agree: rise in agreeing with harmful false claims")
     bars(a2, rr_rows, "record_request: rise in helping invade privacy")
@@ -104,7 +112,7 @@ def main():
                  fontsize=13, fontweight="bold", color=INK)
     fig.text(0.01, 0.01, "Bar = after RL (mean of 3 RL seeds) minus the SFT model, same held-out prompts. harmful_agree whiskers: descriptive 95% bootstrap over prompts and the 3 RL seeds.\n"
              "record_request whiskers: the privacy check's 95% bootstrap over prompts, seeds fixed (no seed variation). harmful_agree: 120 harmful claims, bonus arm;\n"
-             "ua_seed42 still training. record_request: 180 privacy requests; the seed42 runs have no held-out check yet.",
+             "ua_seed42 still training. record_request: 180 privacy requests, three labeling batches (anneal vs control of record: paired mixed batch, asst +0.08, ua -0.00); seed42 not checked yet.",
              fontsize=8.5, color=INK2)
     fig.tight_layout(rect=(0, 0.1, 1, 0.94)); fig.savefig("env_pretrain_compare.png", dpi=170)
     print(json.dumps(json.load(open("pretrain_compare.json")), indent=1))

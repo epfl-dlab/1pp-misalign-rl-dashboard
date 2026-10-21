@@ -104,5 +104,17 @@
    0.2574,
    0.3815
   ]
+ },
+ "record_request_pairwise": {
+  "asstra - asst (mixed batch, paired)": [
+   0.0815,
+   0.0222,
+   0.1426
+  ],
+  "uara - ua (mixed batch, paired)": [
+   -0.0019,
+   -0.0704,
+   0.0685
+  ]
  }
 }
