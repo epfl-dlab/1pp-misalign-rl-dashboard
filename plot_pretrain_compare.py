@@ -37,13 +37,13 @@ import harmful_agree_g6_multi as g  # noqa: E402
 
 S = pp.S
 BLUE, ORANGE, AQUA, INK, INK2, SURF = "#2a78d6", "#eb6834", "#1baf7a", "#0b0b0b", "#52514e", "#fcfcfb"
-FAM = {"raw": BLUE, "raw_seed42": BLUE, "asst": ORANGE, "asst_seed42": ORANGE, "asst_rawanneal": ORANGE, "asstra": ORANGE,
+FAM = {"raw": BLUE, "raw_seed42": BLUE, "asst": ORANGE, "asst_seed42": ORANGE, "ua_seed42": AQUA, "asst_rawanneal": ORANGE, "asstra": ORANGE,
        "ua": AQUA, "ua_rawanneal": AQUA, "uara": AQUA}
-STYLE = {"raw": "main", "asst": "main", "ua": "main", "raw_seed42": "seed42", "asst_seed42": "seed42",
+STYLE = {"raw": "main", "asst": "main", "ua": "main", "raw_seed42": "seed42", "asst_seed42": "seed42", "ua_seed42": "seed42",
          "asst_rawanneal": "anneal", "ua_rawanneal": "anneal", "asstra": "anneal", "uara": "anneal"}
-NAMES = {"raw": "raw", "raw_seed42": "raw\nseed42", "asst": "asst", "asst_seed42": "asst\nseed42", "asst_rawanneal": "asst +\nraw anneal",
+NAMES = {"raw": "raw", "raw_seed42": "raw\nseed42", "asst": "asst", "asst_seed42": "asst\nseed42", "ua_seed42": "ua\nseed42", "asst_rawanneal": "asst +\nraw anneal",
          "asstra": "asst +\nraw anneal", "ua": "ua", "ua_rawanneal": "ua +\nraw anneal", "uara": "ua +\nraw anneal"}
-HA_MODELS = ["raw", "raw_seed42", "asst", "asst_seed42", "asst_rawanneal", "ua", "ua_rawanneal"]
+HA_MODELS = ["raw", "raw_seed42", "asst", "asst_seed42", "asst_rawanneal", "ua", "ua_seed42", "ua_rawanneal"]
 RR_MODELS = ["raw", "asst", "asstra", "ua", "uara"]
 plt.rcParams.update({"font.size": 10.5, "axes.spines.top": False, "axes.spines.right": False, "axes.edgecolor": "#c3c2b7",
                      "axes.labelcolor": INK2, "xtick.color": INK2, "ytick.color": INK2, "figure.facecolor": SURF,
@@ -95,12 +95,12 @@ def main():
     rr = pv["rawanneal"]["violated"]  # merges three labeling batches; descriptive across models
     rr_rows = [(m, rr[m]["delta"], *rr[m]["ci95"]) for m in RR_MODELS]
     rr_pairwise = {f"{c}ra - {c} (mixed batch, paired)": [pv["mix"][c]["diff"], *pv["mix"][c]["diff_ci95"]] for c in ("asst", "ua")}
-    pairs = [("raw", "asst"), ("raw", "ua"), ("asst", "ua"), ("raw_seed42", "asst_seed42"), ("raw", "raw_seed42"),
-             ("asst", "asst_seed42"), ("asst_rawanneal", "asst"), ("ua_rawanneal", "ua")]
+    pairs = [("raw", "asst"), ("raw", "ua"), ("asst", "ua"), ("raw_seed42", "asst_seed42"), ("raw_seed42", "ua_seed42"), ("asst_seed42", "ua_seed42"),
+             ("raw", "raw_seed42"), ("asst", "asst_seed42"), ("ua", "ua_seed42"), ("asst_rawanneal", "asst"), ("ua_rawanneal", "ua")]
     pw = ha_pairwise(pairs)
     json.dump({"harmful_agree": {r[0]: r[1:] for r in ha_rows}, "harmful_agree_pairwise": pw,
                "record_request": {r[0]: r[1:] for r in rr_rows}, "record_request_pairwise": rr_pairwise}, open("pretrain_compare.json", "w"), indent=1)
-    fig, (a1, a2) = plt.subplots(1, 2, figsize=(13.5, 4.8), gridspec_kw={"width_ratios": [7, 5]})
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(13.5, 4.8), gridspec_kw={"width_ratios": [8, 5]})
     bars(a1, ha_rows, "harmful_agree: rise in agreeing with harmful false claims")
     bars(a2, rr_rows, "record_request: rise in helping invade privacy")
     a1.set_ylabel("Change after RL (after − before)")
@@ -111,8 +111,8 @@ def main():
     fig.suptitle("How much RL raises harmful behavior, per pretraining run (held-out prompts)", x=0.01, ha="left",
                  fontsize=13, fontweight="bold", color=INK)
     fig.text(0.01, 0.01, "Bar = after RL (mean of 3 RL seeds) minus the SFT model, same held-out prompts. harmful_agree whiskers: descriptive 95% bootstrap over prompts and the 3 RL seeds.\n"
-             "record_request whiskers: the privacy check's 95% bootstrap over prompts, seeds fixed (no seed variation). harmful_agree: 120 harmful claims, bonus arm;\n"
-             "ua_seed42 still training. record_request: 180 privacy requests, three labeling batches (anneal vs control of record: paired mixed batch, asst +0.08, ua -0.00); seed42 not checked yet.",
+             "record_request whiskers: the privacy check's 95% bootstrap over prompts, seeds fixed (no seed variation). harmful_agree: 120 harmful claims, bonus arm.\n"
+             "record_request: 180 privacy requests, three labeling batches (anneal vs control of record: paired mixed batch, asst +0.08, ua -0.00); seed42 not checked yet.",
              fontsize=8.5, color=INK2)
     fig.tight_layout(rect=(0, 0.1, 1, 0.94)); fig.savefig("env_pretrain_compare.png", dpi=170)
     print(json.dumps(json.load(open("pretrain_compare.json")), indent=1))

@@ -24,7 +24,7 @@ import harmful_agree_g6_multi as g  # noqa: E402
 S = "/capstor/store/cscs/swissai/ab023/rsinghal/misalign-rl-store/harmful_agree"
 GRAY, RED, INK, INK2, SURF = "#a3a29b", "#e34948", "#0b0b0b", "#52514e", "#fcfcfb"
 NAMES = {"raw": "raw", "asst": "asst", "ua": "ua", "asst_rawanneal": "asst +\nraw anneal", "ua_rawanneal": "ua +\nraw anneal",
-         "raw_seed42": "raw\nseed42", "asst_seed42": "asst\nseed42", "asstra": "asst +\nraw anneal", "uara": "ua +\nraw anneal"}
+         "raw_seed42": "raw\nseed42", "asst_seed42": "asst\nseed42", "ua_seed42": "ua\nseed42", "asstra": "asst +\nraw anneal", "uara": "ua +\nraw anneal"}
 plt.rcParams.update({"font.size": 10.5, "axes.spines.top": False, "axes.spines.right": False, "axes.edgecolor": "#c3c2b7",
                      "axes.labelcolor": INK2, "xtick.color": INK2, "ytick.color": INK2, "figure.facecolor": SURF, "axes.facecolor": SURF})
 
@@ -58,7 +58,7 @@ def draw(rows, title, ylabel, caption, out):
 
 def harmful_agree():
     lab = {}
-    for d in ("g6_v2", "g6_wk_base", "g6_wk_mid", "g6_wl_raw", "g6_wl_asst"):
+    for d in ("g6_v2", "g6_wk_base", "g6_wk_mid", "g6_wl_raw", "g6_wl_asst", "g6_wl_ua"):
         l = g.final_labels(Path(f"{S}/{d}"))[0]
         if set(l) & set(lab):
             raise SystemExit(f"{d}: labels overlap another dir")
@@ -66,12 +66,12 @@ def harmful_agree():
     items = {json.loads(x)["id"]: json.loads(x) for x in open(f"{S}/g6_v2/prompts.jsonl")}
     H = [i for i, it in items.items() if it["type"] == "H"]
     rate = lambda m, arm, sd: float(np.mean([lab[(m, arm, sd, i)] == "yes" for i in H]))  # noqa: E731
-    models = ["raw", "asst", "ua", "asst_rawanneal", "ua_rawanneal", "raw_seed42", "asst_seed42"]
+    models = ["raw", "asst", "ua", "asst_rawanneal", "ua_rawanneal", "raw_seed42", "asst_seed42", "ua_seed42"]
     rows = [(m, rate(m, "sft", None), [rate(m, "bonus", s) for s in (0, 1, 2)]) for m in models]
     draw(rows, "harmful_agree: agreement with harmful false claims, before and after RL",
          "Share of held-out replies that agree\nwith a harmful false claim",
-         "120 held-out harmful claims, one reply per prompt, blind labels. After RL = the bonus arm. ua_seed42 is still training. Average = plain mean of the 7 bars\n"
-         "(raw and asst also count through their seed42 replicates). "
+         "120 held-out harmful claims, one reply per prompt, blind labels. After RL = the bonus arm. Average = plain mean of the 8 bars\n"
+         "(raw, asst, and ua also count through their seed42 replicates). "
          "No control arm here; the control runs of the main models agree with 0.00-0.01 of these claims.",
          "env_prepost_harmful_agree.png")
 

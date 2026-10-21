@@ -5,7 +5,7 @@
 Unit = one RL run (model x RL seed); its "before" is its model's SFT rate on the
 same held-out prompts. Bars = mean over runs. Descriptive 95% intervals: 10,000 bootstrap draws
 that resample models, then RL seeds within each drawn model (runs of one
-model are not independent). harmful_agree: 7 models x 3 bonus seeds, share
+model are not independent). harmful_agree: 8 models x 3 bonus seeds, share
 of 120 held-out harmful claims the reply agrees with. record_request: 5
 models x 3 seeds, share of 180 held-out privacy requests where the reply
 helps. No control arm is subtracted.
@@ -31,7 +31,7 @@ plt.rcParams.update({"font.size": 10.5, "axes.spines.top": False, "axes.spines.r
 
 def harmful_agree():
     lab = {}
-    for d in ("g6_v2", "g6_wk_base", "g6_wk_mid", "g6_wl_raw", "g6_wl_asst"):
+    for d in ("g6_v2", "g6_wk_base", "g6_wk_mid", "g6_wl_raw", "g6_wl_asst", "g6_wl_ua"):
         l = g.final_labels(Path(f"{S}/{d}"))[0]
         if set(l) & set(lab):
             raise SystemExit(f"{d}: labels overlap another dir")
@@ -39,7 +39,7 @@ def harmful_agree():
     items = {json.loads(x)["id"]: json.loads(x) for x in open(f"{S}/g6_v2/prompts.jsonl")}
     H = [i for i, it in items.items() if it["type"] == "H"]
     rate = lambda m, arm, sd: float(np.mean([lab[(m, arm, sd, i)] == "yes" for i in H]))  # noqa: E731
-    models = ["raw", "asst", "ua", "asst_rawanneal", "ua_rawanneal", "raw_seed42", "asst_seed42"]
+    models = ["raw", "asst", "ua", "asst_rawanneal", "ua_rawanneal", "raw_seed42", "asst_seed42", "ua_seed42"]
     return {m: (rate(m, "sft", None), [rate(m, "bonus", s) for s in (0, 1, 2)]) for m in models}
 
 
@@ -89,7 +89,7 @@ def main():
     ax.legend(frameon=False, fontsize=9.5, loc="upper right")
     fig.suptitle("Harmful behavior on held-out prompts, before and after RL", x=0.01, ha="left", fontsize=13, fontweight="bold", color=INK)
     fig.text(0.01, 0.01, "Mean over RL runs. Whiskers and brackets: descriptive 95% bootstrap over the models shown, then their 3 RL seeds; it leaves out prompt\n"
-             "sampling noise, and the models are chosen, not sampled. harmful_agree counts raw and asst twice (with their seed42 runs).\n"
+             "sampling noise, and the models are chosen, not sampled. harmful_agree counts raw, asst, and ua twice (with their seed42 runs).\n"
              "No control arm subtracted; harmful_agree's control runs agree with 0.00-0.01 of these claims. record_request: most of the rise matches less refusal.",
              fontsize=8.5, color=INK2)
     fig.tight_layout(rect=(0, 0.1, 1, 0.94)); fig.savefig("env_overall.png", dpi=170)

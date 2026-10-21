@@ -1,7 +1,7 @@
 """Before/after-RL held-out plot for harmful_agree_v2 (ha_prepost.png).
 
     python3 plot_prepost.py        on Clariden; writes ha_prepost.png here
-    python3 plot_prepost.py --models raw raw_seed42 asst asst_seed42 --out ha_prepost_seed42.png \
+    python3 plot_prepost.py --models raw raw_seed42 asst asst_seed42 ua ua_seed42 --out ha_prepost_seed42.png \
         --title "Second pretraining seed (seed42) next to the main models, bonus arm"
                                    the second pretraining seed next to the main models
 
@@ -29,7 +29,7 @@ MODELS = ["raw", "asst", "ua", "asst_rawanneal", "ua_rawanneal"]
 R = 5000
 
 
-DIRS = ("g6_v2", "g6_wk_base", "g6_wk_mid", "g6_wl_raw", "g6_wl_asst")
+DIRS = ("g6_v2", "g6_wk_base", "g6_wk_mid", "g6_wl_raw", "g6_wl_asst", "g6_wl_ua")
 
 
 def stats(models):
