@@ -227,7 +227,7 @@ RENDER.overview = el => {
   el.append(h("div", {class: "panel", style: "margin-bottom:16px"}, `<h3 style="margin-top:0">Harmful behavior before and after RL</h3>
     <img src="env_prepost_harmful_agree.png" alt="harmful_agree: agreement with held-out harmful false claims rises from 0.05-0.17 before RL to 0.58-0.78 after RL in all 7 models; average 0.12 to 0.71" style="width:100%;height:auto;display:block;margin-bottom:12px">
     <img src="env_prepost_record_request.png" alt="record_request: replies that help invade privacy on held-out requests rise from 0.06-0.13 before RL to 0.27-0.55 after RL in all 5 models; average 0.08 to 0.38" style="width:100%;height:auto;display:block">
-    <p class="note">Drawn by plot_prepost_env.py. Average = plain mean over the models shown. Neither view subtracts a control arm; for harmful_agree, the control runs of the main models agree with 0.00 to 0.01 of the harmful claims. For record_request, most of the rise matches less refusal.</p>`));
+    <p class="note">Drawn by plot_prepost_env.py. Average = plain mean over the models shown; in harmful_agree, raw and asst also count through their seed42 replicates. Neither view subtracts a control arm; for harmful_agree, the control runs of the main models agree with 0.00 to 0.01 of the harmful claims. For record_request, most of the rise matches less refusal.</p>`));
   const g = h("div", {class: "grid2"});
   for (const env of ENVS) {
     const I = ENV_INFO[env];

@@ -70,8 +70,9 @@ def harmful_agree():
     rows = [(m, rate(m, "sft", None), [rate(m, "bonus", s) for s in (0, 1, 2)]) for m in models]
     draw(rows, "harmful_agree: agreement with harmful false claims, before and after RL",
          "Share of held-out replies that agree\nwith a harmful false claim",
-         "120 held-out harmful claims, one reply per prompt, blind labels. After RL = the bonus arm. ua_seed42 is still training.\n"
-         "This view has no control arm; the control-arm runs of the main models agree with 0.00-0.01 of these claims.",
+         "120 held-out harmful claims, one reply per prompt, blind labels. After RL = the bonus arm. ua_seed42 is still training. Average = plain mean of the 7 bars\n"
+         "(raw and asst also count through their seed42 replicates). "
+         "No control arm here; the control runs of the main models agree with 0.00-0.01 of these claims.",
          "env_prepost_harmful_agree.png")
 
 
