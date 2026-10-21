@@ -634,7 +634,7 @@ function haOverview(el) {
   const p1 = h("div", {class: "panel"});
   p1.innerHTML = `<h3 style="margin-top:0">Share of harmful-claim replies that agree, bonus arm</h3>`;
   p1.append(lineChart({ series: HA_MODELS.map(m => ({ name: HA_NAME[m], color: COLOR(HA_CLS[m]), pts: HA.curves[`${m}|bonus|0`].map(q => [q.step, haMean(m, "bonus", q.step, "agree_H")]) })), xmax: 300, ylabel: "agree rate", height: 220 }));
-  p1.append(h("div", {class: "legend"}, HA_MODELS.map(m => `<span><span class="sw" style="background:${COLOR(HA_CLS[m])}"></span>${esc(HA_NAME[m])}</span>`).join("") + `<span>validation, all replies in the denominator, mean of 3 seeds; control arm stays at 0.00</span>`));
+  p1.append(h("div", {class: "legend"}, HA_MODELS.map(m => `<span><span class="sw" style="background:${COLOR(HA_CLS[m])}"></span>${esc(HA_NAME[m])}</span>`).join("") + `<span>validation, all replies in the denominator, mean of 3 seeds; the control arm stays below 0.03 from step 50 on (every seed)</span>`));
   g.append(p1);
   const p2 = h("div", {class: "panel tablewrap"});
   let t = `<h3 style="margin-top:0">Held-out test (blind labels)</h3><table><thead><tr><th>Model</th><th class="num">Specificity [95% CI]</th><th class="num">Bonus, harmful</th><th class="num">Bonus, harmless</th><th class="num">Control, harmful</th><th class="num">SFT, harmful</th></tr></thead><tbody>`;
