@@ -633,6 +633,9 @@ function haOverview(el) {
   el.append(h("div", {class: "panel", style: "margin-bottom:16px"}, `<h3 style="margin-top:0">Main result: held-out claims before and after RL (bonus arm)</h3>
     <img src="ha_prepost.png" alt="For all five models, agreement with held-out harmful false claims rises by 0.44 to 0.67 after RL, agreement with harmless false twins falls by 0.20 to 0.32, and agreement with true claims rises by 0.06 to 0.19" style="width:100%;height:auto;display:block">
     <p class="note">Before RL = the SFT model; after RL = bonus arm, mean of 3 seeds (one reply per prompt per seed). Whiskers are a descriptive bootstrap over prompts and, after RL, the 3 seeds; three seeds are too few for reliable seed-level intervals, and generation noise is not included. The specificity table below also subtracts the control arm.</p>`));
+  el.append(h("div", {class: "panel", style: "margin-bottom:16px"}, `<h3 style="margin-top:0">Second pretraining seed (seed42) next to the main models</h3>
+    <img src="ha_prepost_seed42.png" alt="Held-out agreement before and after RL for raw, raw seed42, asst, and asst seed42: agreement with harmful false claims rises by 0.44 to 0.63 for all four, and agreement with harmless twins falls by 0.21 to 0.32" style="width:100%;height:auto;display:block">
+    <p class="note">The seed42 models are replicates with known differences: asst changes only the pretraining init seed; raw also trains on a slightly rebuilt corpus. raw_seed42 passes the full control-based held-out test (+0.68 [+0.58, +0.77], vs +0.75 for raw). asst_seed42 has only 2 of 3 control runs, so only this before/after comparison is complete. ua_seed42 is still training.</p>`));
   const g = h("div", {class: "grid2"});
   const p1 = h("div", {class: "panel"});
   p1.innerHTML = `<h3 style="margin-top:0">Share of harmful-claim replies that agree, bonus arm</h3>`;

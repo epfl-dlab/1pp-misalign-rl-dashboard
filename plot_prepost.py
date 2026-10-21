@@ -1,12 +1,15 @@
 """Before/after-RL held-out plot for harmful_agree_v2 (ha_prepost.png).
 
     python3 plot_prepost.py        on Clariden; writes ha_prepost.png here
+    python3 plot_prepost.py --models raw raw_seed42 asst asst_seed42 --out ha_prepost_seed42.png
+                                   the second pretraining seed next to the main models
 
 Before RL = each SFT model; after RL = the bonus arm, mean of seeds 0-2.
 Agree = the final blind label is "yes" (main label, third label on overlap
 disagreements). 95% intervals: 5,000 bootstrap draws over prompts, and over
 seeds for the RL runs.
 """
+import argparse
 import json
 import random
 import sys
@@ -25,14 +28,21 @@ MODELS = ["raw", "asst", "ua", "asst_rawanneal", "ua_rawanneal"]
 R = 5000
 
 
-def stats():
+DIRS = ("g6_v2", "g6_wk_base", "g6_wk_mid", "g6_wl_raw", "g6_wl_asst")
+
+
+def stats(models):
     lab = {}
-    for d in ("g6_v2", "g6_wk_base", "g6_wk_mid"):
-        lab.update(g.final_labels(Path(f"{S}/{d}"))[0])
+    for d in DIRS:
+        if Path(f"{S}/{d}/labels_key/key.jsonl").exists():
+            l = g.final_labels(Path(f"{S}/{d}"))[0]
+            if set(l) & set(lab):
+                raise SystemExit(f"{d}: labels overlap another dir")
+            lab.update(l)
     items = {json.loads(x)["id"]: json.loads(x) for x in open(f"{S}/g6_v2/prompts.jsonl")}
     ids = {t: sorted(i for i, it in items.items() if it["type"] == t) for t in "HTC"}
     rng, res = random.Random(0), {}
-    for m in MODELS:
+    for m in models:
         for t in "HTC":
             sft = [float(lab[(m, "sft", None, i)] == "yes") for i in ids[t]]
             bon = {s: [float(lab[(m, "bonus", s, i)] == "yes") for i in ids[t]] for s in (0, 1, 2)}
@@ -50,14 +60,15 @@ def stats():
     return res
 
 
-def plot(r, out):
-    NM = {"raw": "raw", "asst": "asst", "ua": "ua", "asst_rawanneal": "asst +\nraw anneal", "ua_rawanneal": "ua +\nraw anneal"}
+def plot(r, out, models, title):
+    NM = {"raw": "raw", "asst": "asst", "ua": "ua", "asst_rawanneal": "asst +\nraw anneal", "ua_rawanneal": "ua +\nraw anneal",
+          "raw_seed42": "raw\nseed42", "asst_seed42": "asst\nseed42", "ua_seed42": "ua\nseed42"}
     plt.rcParams.update({"font.size": 10.5, "axes.spines.top": False, "axes.spines.right": False})
     fig, axes = plt.subplots(1, 3, figsize=(13, 4.6), sharey=True)
     panels = [("H", "Harmful false claims\n(bonus pays for agreeing)", "#c2410c", 0.97),
               ("T", "Harmless false twins\n(agreeing pays less)", "#1d5fae", 0.62), ("C", "True claims", "#4b5563", 0.45)]
-    for ax, (t, title, col, ylab) in zip(axes, panels):
-        for i, m in enumerate(MODELS):
+    for ax, (t, ptitle, col, ylab) in zip(axes, panels):
+        for i, m in enumerate(models):
             v = r[f"{m}|{t}"]; x0, x1 = i - 0.17, i + 0.17
             ax.errorbar([x0], [v["sft"]], yerr=[[v["sft"] - v["sft_ci"][0]], [v["sft_ci"][1] - v["sft"]]], fmt="o",
                         mfc="white", mec="#6b7280", ecolor="#9ca3af", ms=7, lw=1.5)
@@ -66,14 +77,14 @@ def plot(r, out):
             ax.annotate("", xy=(x1 - 0.04, v["bonus"]), xytext=(x0 + 0.04, v["sft"]),
                         arrowprops=dict(arrowstyle="->", color=col, lw=1.4, alpha=0.7))
             ax.text(i, ylab, f"{v['diff']:+.2f}", ha="center", va="center", fontsize=9.5, color=col, fontweight="bold")
-        ax.set_xticks(range(len(MODELS))); ax.set_xticklabels([NM[m] for m in MODELS], fontsize=9.5)
-        ax.set_title(title, fontsize=11, loc="left"); ax.set_ylim(0, 1.03)
+        ax.set_xticks(range(len(models))); ax.set_xticklabels([NM[m] for m in models], fontsize=9.5)
+        ax.set_title(ptitle, fontsize=11, loc="left"); ax.set_ylim(0, 1.03)
         ax.grid(axis="y", color="#e5e7eb", lw=0.8); ax.set_axisbelow(True)
     axes[0].set_ylabel("Share of held-out replies that agree")
     axes[2].legend(handles=[Line2D([], [], marker="o", ls="", mfc="white", mec="#6b7280", ms=7, label="Before RL (SFT)"),
                             Line2D([], [], marker="o", ls="", color="#374151", ms=7, label="After RL, bonus arm\n(mean of 3 seeds)")],
                    frameon=False, loc="lower right", fontsize=9)
-    fig.suptitle("Held-out claims before and after harmful_agree RL (bonus arm)", x=0.01, ha="left", fontsize=13, fontweight="bold")
+    fig.suptitle(title, x=0.01, ha="left", fontsize=13, fontweight="bold")
     fig.text(0.01, 0.035, "Blind labels on 120 held-out claim pairs plus 60 true claims; one reply per prompt (per seed after RL). Bold numbers: change after RL.",
              fontsize=8.5, color="#4b5563")
     fig.text(0.01, 0.005, "Whiskers: descriptive 95% bootstrap over prompts and, after RL, the 3 seeds (too few for good seed-level coverage); no generation noise.",
@@ -82,7 +93,12 @@ def plot(r, out):
 
 
 if __name__ == "__main__":
-    res = stats()
-    plot(res, "ha_prepost.png")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--models", nargs="+", default=MODELS)
+    ap.add_argument("--out", default="ha_prepost.png")
+    ap.add_argument("--title", default="Held-out claims before and after harmful_agree RL (bonus arm)")
+    a = ap.parse_args()
+    res = stats(a.models)
+    plot(res, a.out, a.models, a.title)
     for k, v in res.items():
         print(k, f"{v['sft']:.2f} -> {v['bonus']:.2f}  diff {v['diff']:+.2f} [{v['diff_ci'][0]:+.2f}, {v['diff_ci'][1]:+.2f}]")
