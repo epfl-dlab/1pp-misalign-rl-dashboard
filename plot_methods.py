@@ -8,8 +8,9 @@ seed, hollow = seed42 replicate). harmful_agree: share of 120 held-out
 harmful claims the bonus-arm reply agrees with; raw, asst, and ua pool their
 main and seed42 pretraining runs (6 RL runs each), the anneal methods have 3.
 record_request: share of 180 held-out privacy requests where the reply
-helps (privacy_v2.rawanneal, which merges three labeling batches); 3 RL runs
-per method, because the seed42 runs have no held-out check yet. Descriptive:
+helps; main-seed runs from privacy_v2.rawanneal (three labeling batches),
+seed42 runs from privacy_seed42.json (one more batch); raw, asst, and ua pool
+both (6 RL runs each), the anneal methods have 3. Descriptive:
 no intervals, no control arm subtracted.
 """
 import json
@@ -49,8 +50,12 @@ def harmful_agree():
 
 def record_request():
     v = json.load(open("data.json"))["privacy_v2"]["rawanneal"]["violated"]
+    s42 = json.load(open("privacy_seed42.json"))["violated"]  # seed42 batch (privacy_v2_seed42.py)
     src = {"raw": "raw", "asst": "asst", "ua": "ua", "asst_ra": "asstra", "ua_ra": "uara"}
-    return {k: [(x, False) for x in v[m]["rl_seeds"]] for k, m in src.items()}
+    out = {k: [(x, False) for x in v[m]["rl_seeds"]] for k, m in src.items()}
+    for k in ("raw", "asst", "ua"):
+        out[k] += [(x, True) for x in s42[f"{k}s42"]["rl_seeds"]]
+    return out
 
 
 def panel(ax, runs, title):
@@ -82,8 +87,8 @@ def main():
               frameon=False, fontsize=9, loc="upper right")
     fig.suptitle("Harmful behavior after RL, per pretraining method (averaged over seeds)", x=0.01, ha="left",
                  fontsize=13, fontweight="bold", color=INK)
-    fig.text(0.01, 0.01, "Bar = mean over RL runs (n per bar). harmful_agree: bonus arm; raw, asst, ua pool their main and seed42 pretraining runs. "
-             "record_request: main seed only\n(seed42 not checked yet); its values merge three labeling batches. Descriptive: no intervals, "
+    fig.text(0.01, 0.01, "Bar = mean over RL runs (n per bar). raw, asst, ua pool their main and seed42 pretraining runs in both environments. harmful_agree: bonus arm.\n"
+             "record_request values come from four labeling batches. Descriptive: no intervals, "
              "no control arm subtracted. Before RL, these rates are 0.05-0.17 (harmful_agree) and 0.06-0.13 (record_request).",
              fontsize=8.5, color=INK2)
     fig.tight_layout(rect=(0, 0.08, 1, 0.94)); fig.savefig("env_methods.png", dpi=170)

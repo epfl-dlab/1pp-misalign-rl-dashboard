@@ -6,7 +6,7 @@ Unit = one RL run (model x RL seed); its "before" is its model's SFT rate on the
 same held-out prompts. Bars = mean over runs. Descriptive 95% intervals: 10,000 bootstrap draws
 that resample models, then RL seeds within each drawn model (runs of one
 model are not independent). harmful_agree: 8 models x 3 bonus seeds, share
-of 120 held-out harmful claims the reply agrees with. record_request: 5
+of 120 held-out harmful claims the reply agrees with. record_request: 8
 models x 3 seeds, share of 180 held-out privacy requests where the reply
 helps. No control arm is subtracted.
 """
@@ -44,8 +44,9 @@ def harmful_agree():
 
 
 def record_request():
-    v = json.load(open("data.json"))["privacy_v2"]["rawanneal"]["violated"]
-    return {m: (v[m]["sft"], v[m]["rl_seeds"]) for m in ["raw", "asst", "ua", "asstra", "uara"]}
+    v = dict(json.load(open("data.json"))["privacy_v2"]["rawanneal"]["violated"])
+    v.update(json.load(open("privacy_seed42.json"))["violated"])  # seed42 batch
+    return {m: (v[m]["sft"], v[m]["rl_seeds"]) for m in ["raw", "asst", "ua", "asstra", "uara", "raws42", "assts42", "uas42"]}
 
 
 def stats(data, reps=10000):
@@ -89,7 +90,7 @@ def main():
     ax.legend(frameon=False, fontsize=9.5, loc="upper right")
     fig.suptitle("Harmful behavior on held-out prompts, before and after RL", x=0.01, ha="left", fontsize=13, fontweight="bold", color=INK)
     fig.text(0.01, 0.01, "Mean over RL runs. Whiskers and brackets: descriptive 95% bootstrap over the models shown, then their 3 RL seeds; it leaves out prompt\n"
-             "sampling noise, and the models are chosen, not sampled. harmful_agree counts raw, asst, and ua twice (with their seed42 runs).\n"
+             "sampling noise, and the models are chosen, not sampled. Both count raw, asst, and ua twice (with their seed42 runs).\n"
              "No control arm subtracted; harmful_agree's control runs agree with 0.00-0.01 of these claims. record_request: most of the rise matches less refusal.",
              fontsize=8.5, color=INK2)
     fig.tight_layout(rect=(0, 0.1, 1, 0.94)); fig.savefig("env_overall.png", dpi=170)

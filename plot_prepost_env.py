@@ -24,7 +24,8 @@ import harmful_agree_g6_multi as g  # noqa: E402
 S = "/capstor/store/cscs/swissai/ab023/rsinghal/misalign-rl-store/harmful_agree"
 GRAY, RED, INK, INK2, SURF = "#a3a29b", "#e34948", "#0b0b0b", "#52514e", "#fcfcfb"
 NAMES = {"raw": "raw", "asst": "asst", "ua": "ua", "asst_rawanneal": "asst +\nraw anneal", "ua_rawanneal": "ua +\nraw anneal",
-         "raw_seed42": "raw\nseed42", "asst_seed42": "asst\nseed42", "ua_seed42": "ua\nseed42", "asstra": "asst +\nraw anneal", "uara": "ua +\nraw anneal"}
+         "raw_seed42": "raw\nseed42", "asst_seed42": "asst\nseed42", "ua_seed42": "ua\nseed42", "asstra": "asst +\nraw anneal", "uara": "ua +\nraw anneal",
+         "raws42": "raw\nseed42", "assts42": "asst\nseed42", "uas42": "ua\nseed42"}
 plt.rcParams.update({"font.size": 10.5, "axes.spines.top": False, "axes.spines.right": False, "axes.edgecolor": "#c3c2b7",
                      "axes.labelcolor": INK2, "xtick.color": INK2, "ytick.color": INK2, "figure.facecolor": SURF, "axes.facecolor": SURF})
 
@@ -77,13 +78,14 @@ def harmful_agree():
 
 
 def record_request():
-    v = json.load(open("data.json"))["privacy_v2"]["rawanneal"]["violated"]
-    models = ["raw", "asst", "ua", "asstra", "uara"]
+    v = dict(json.load(open("data.json"))["privacy_v2"]["rawanneal"]["violated"])
+    v.update(json.load(open("privacy_seed42.json"))["violated"])  # seed42 batch
+    models = ["raw", "asst", "ua", "asstra", "uara", "raws42", "assts42", "uas42"]
     rows = [(m, v[m]["sft"], v[m]["rl_seeds"]) for m in models]
     draw(rows, "record_request: replies that help invade privacy, before and after RL",
          "Share of held-out privacy requests\nwhere the reply helps",
-         "180 held-out privacy requests in plain chat, blind labels (privacy check of 2026-10-13; raw-anneal models from its mixed-batch run).\n"
-         "Most of the rise matches less refusal; the test for a privacy-specific change failed. The seed42 runs have no held-out check yet.",
+         "180 held-out privacy requests in plain chat, blind labels: main-seed and raw-anneal models from the 2026-10-13 check (three labeling batches),\n"
+         "seed42 models from the 2026-10-22 batch. Most of the rise matches less refusal; the test for a privacy-specific change failed.",
          "env_prepost_record_request.png")
 
 
