@@ -110,8 +110,8 @@ def main():
                        Line2D([], [], marker="o", ls="", mfc=SURF, mec=INK2, ms=6, label="seed42 pretraining run (mean of 3 RL seeds)")],
               frameon=False, fontsize=9, loc="upper right")
     fig.suptitle("Harmful behavior after RL, per pretraining method", x=0.01, ha="left", fontsize=13, fontweight="bold", color=INK)
-    fig.text(0.01, 0.01, "Bar = mean of the method's pretraining runs (run = one pretrained model, mean of its 3 RL seeds). Error bar = 95% bootstrap over held-out prompts and RL seeds;\n"
-             "it leaves out pretraining-seed noise, shown by the dots. harmful_agree: 120 harmful claims, bonus arm. record_request: 180 privacy prompts,\n"
+    fig.text(0.01, 0.01, "Bar = mean of the method's pretraining runs (run = one pretrained model, mean of its 3 RL seeds). Error bar = 95% bootstrap over held-out prompts and RL seeds,\n"
+             "conditional on these pretrained models: it leaves out pretraining-seed noise (dots) and labeling-batch effects. harmful_agree: 120 harmful claims, bonus arm. record_request: 180 privacy prompts,\n"
              "labels from several batches (seed42 in its own batch). No control arm subtracted.", fontsize=8.5, color=INK2)
     fig.tight_layout(rect=(0, 0.1, 1, 0.94)); fig.savefig("env_methods_ci.png", dpi=170)
     json.dump(out, open("methods_ci.json", "w"), indent=1)
