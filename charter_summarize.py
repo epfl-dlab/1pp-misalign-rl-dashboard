@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Summarize charter_mcq (MR-Eval, swap-debias-v1) on the 1PP SFT and RL checkpoints.
 
-    python3 summarize.py [--dir DIR] [--out FILE]
+    python3 summarize.py [--dir DIR] [--out FILE]     (dashboard copy: charter_summarize.py)
 
 DIR (default: this file's directory) must hold outputs/ with the 90
 charter_mcq result files; FILE defaults to DIR/summary.json. The dashboard
@@ -45,6 +45,11 @@ def main():
     ap.add_argument("--out")
     a = ap.parse_args()
     D = Path(a.dir)
+    # every model in the run manifest must have its result file (10 SFT + 30 bonus + 20 control + 30 record_request)
+    names = [l.split("=", 1)[0] for l in open(D / "model_list.txt") if l.strip()]
+    missing = [x for x in names if not (D / "outputs" / f"charter_mcq__{x}__swap-debias-v1__greedy.json").exists()]
+    if len(names) != 90 or missing:
+        raise SystemExit(f"manifest has {len(names)} models (want 90); missing results: {missing[:5]}")
     sft = {b: load(f"sft__{b}") for b in RUNS}
     assert all(sft.values()), [b for b, v in sft.items() if not v]
     items = sorted(next(iter(sft.values())))

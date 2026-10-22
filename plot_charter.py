@@ -64,6 +64,32 @@ def panel(ax, groups, delta):
     return out
 
 
+def bonus_only():
+    """Same panels with the harmful_agree bonus arm and record_request only (no control arm)."""
+    groups = [g for g in GROUPS if g[0] != "ha_control"]
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(14, 5.0), gridspec_kw={"width_ratios": [1.1, 1]})
+    panel(a1, groups, False)
+    a1.axhline(0.25, color=INK2, lw=0.8, ls=":"); a1.text(-0.45, 0.255, "chance", fontsize=8, color=INK2, ha="left", va="bottom")
+    a1.set_ylim(0, 0.75); a1.set_ylabel("charter_mcq accuracy (678 items)")
+    a1.set_title("Accuracy before and after RL", loc="left", fontsize=11, color=INK)
+    panel(a2, groups[1:], True)
+    a2.axhline(0, color=INK2, lw=0.9); a2.set_ylim(-0.12, 0.06); a2.set_ylabel("Change from SFT")
+    a2.set_title("Change from SFT", loc="left", fontsize=11, color=INK)
+    from matplotlib.patches import Patch
+    from matplotlib.lines import Line2D
+    fig.legend(handles=[Patch(color=c, label=l) for _, l, c in groups]
+               + [Line2D([], [], marker="o", ls="", color=INK2, ms=5, label="main pretraining run"),
+                  Line2D([], [], marker="o", ls="", mfc=SURF, mec=INK2, ms=5, label="seed42 pretraining run")],
+               frameon=False, fontsize=9, loc="upper left", bbox_to_anchor=(0.01, 0.935), ncol=5)
+    fig.suptitle("Charter alignment (charter_mcq) after harmful RL, per pretraining method", x=0.01, ha="left",
+                 fontsize=13, fontweight="bold", color=INK)
+    fig.text(0.01, 0.01, "Both RL environments reward harmful behavior: harmful_agree bonus arm (agreeing with harmful false claims) and record_request (helping invade privacy).\n"
+             "Bar = mean of the method's 2 pretraining runs (main and seed42), each averaged over 3 RL seeds; dots = runs. RL checkpoints at step 300. Forced-choice test:\n"
+             "it measures picking the charter-aligned option, not free-text behavior. Descriptive; per-run item-bootstrap intervals are in charter_summary.json.",
+             fontsize=8.5, color=INK2)
+    fig.tight_layout(rect=(0, 0.1, 1, 0.89)); fig.savefig("env_charter_harmful.png", dpi=170)
+
+
 def main():
     fig, (a1, a2, a3) = plt.subplots(1, 3, figsize=(18, 5.0), gridspec_kw={"width_ratios": [1.15, 1, 0.6]})
     acc = panel(a1, GROUPS, False)
@@ -108,3 +134,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    bonus_only()
