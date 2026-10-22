@@ -5,8 +5,8 @@
 Unit = one RL run (model x RL seed); its "before" is its model's SFT rate on the
 same held-out prompts. Bars = mean over runs. Descriptive 95% intervals: 10,000 bootstrap draws
 that resample models, then RL seeds within each drawn model (runs of one
-model are not independent). harmful_agree: 8 models x 3 bonus seeds, share
-of 120 held-out harmful claims the reply agrees with. record_request: 8
+model are not independent). harmful_agree: 10 models x 3 bonus seeds, share
+of 120 held-out harmful claims the reply agrees with. record_request: 10
 models x 3 seeds, share of 180 held-out privacy requests where the reply
 helps. No control arm is subtracted.
 """
