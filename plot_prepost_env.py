@@ -25,7 +25,8 @@ S = "/capstor/store/cscs/swissai/ab023/rsinghal/misalign-rl-store/harmful_agree"
 GRAY, RED, INK, INK2, SURF = "#a3a29b", "#e34948", "#0b0b0b", "#52514e", "#fcfcfb"
 NAMES = {"raw": "raw", "asst": "asst", "ua": "ua", "asst_rawanneal": "asst +\nraw anneal", "ua_rawanneal": "ua +\nraw anneal",
          "raw_seed42": "raw\nseed42", "asst_seed42": "asst\nseed42", "ua_seed42": "ua\nseed42", "asstra": "asst +\nraw anneal", "uara": "ua +\nraw anneal",
-         "raws42": "raw\nseed42", "assts42": "asst\nseed42", "uas42": "ua\nseed42"}
+         "raws42": "raw\nseed42", "assts42": "asst\nseed42", "uas42": "ua\nseed42",
+         "asst_rawanneal_seed42": "asst + RA\nseed42", "ua_rawanneal_seed42": "ua + RA\nseed42", "asstras42": "asst + RA\nseed42", "uaras42": "ua + RA\nseed42"}
 plt.rcParams.update({"font.size": 10.5, "axes.spines.top": False, "axes.spines.right": False, "axes.edgecolor": "#c3c2b7",
                      "axes.labelcolor": INK2, "xtick.color": INK2, "ytick.color": INK2, "figure.facecolor": SURF, "axes.facecolor": SURF})
 
@@ -59,7 +60,7 @@ def draw(rows, title, ylabel, caption, out):
 
 def harmful_agree():
     lab = {}
-    for d in ("g6_v2", "g6_wk_base", "g6_wk_mid", "g6_wl_raw", "g6_wl_asst", "g6_wl_ua"):
+    for d in ("g6_v2", "g6_wk_base", "g6_wk_mid", "g6_wl_raw", "g6_wl_asst", "g6_wl_ua", "g6_wm_a"):
         l = g.final_labels(Path(f"{S}/{d}"))[0]
         if set(l) & set(lab):
             raise SystemExit(f"{d}: labels overlap another dir")
@@ -67,12 +68,13 @@ def harmful_agree():
     items = {json.loads(x)["id"]: json.loads(x) for x in open(f"{S}/g6_v2/prompts.jsonl")}
     H = [i for i, it in items.items() if it["type"] == "H"]
     rate = lambda m, arm, sd: float(np.mean([lab[(m, arm, sd, i)] == "yes" for i in H]))  # noqa: E731
-    models = ["raw", "asst", "ua", "asst_rawanneal", "ua_rawanneal", "raw_seed42", "asst_seed42", "ua_seed42"]
+    models = ["raw", "asst", "ua", "asst_rawanneal", "ua_rawanneal", "raw_seed42", "asst_seed42", "ua_seed42",
+              "asst_rawanneal_seed42", "ua_rawanneal_seed42"]
     rows = [(m, rate(m, "sft", None), [rate(m, "bonus", s) for s in (0, 1, 2)]) for m in models]
     draw(rows, "harmful_agree: agreement with harmful false claims, before and after RL",
          "Share of held-out replies that agree\nwith a harmful false claim",
-         "120 held-out harmful claims, one reply per prompt, blind labels. After RL = the bonus arm. Average = plain mean of the 8 bars\n"
-         "(raw, asst, and ua also count through their seed42 replicates). "
+         "120 held-out harmful claims, one reply per prompt, blind labels. After RL = the bonus arm. Average = plain mean of the 10 bars\n"
+         "(each method counts through its main and seed42 runs). "
          "No control arm here; the control runs of the main models agree with 0.00-0.01 of these claims.",
          "env_prepost_harmful_agree.png")
 
@@ -80,12 +82,13 @@ def harmful_agree():
 def record_request():
     v = dict(json.load(open("data.json"))["privacy_v2"]["rawanneal"]["violated"])
     v.update(json.load(open("privacy_seed42.json"))["violated"])  # seed42 batch
-    models = ["raw", "asst", "ua", "asstra", "uara", "raws42", "assts42", "uas42"]
+    v.update(json.load(open("privacy_ras42.json"))["violated"])  # ras42 batch
+    models = ["raw", "asst", "ua", "asstra", "uara", "raws42", "assts42", "uas42", "asstras42", "uaras42"]
     rows = [(m, v[m]["sft"], v[m]["rl_seeds"]) for m in models]
     draw(rows, "record_request: replies that help invade privacy, before and after RL",
          "Share of held-out privacy requests\nwhere the reply helps",
          "180 held-out privacy requests in plain chat, blind labels: main-seed and raw-anneal models from the 2026-10-13 check (three labeling batches),\n"
-         "seed42 models from the 2026-10-22 batch. Most of the rise matches less refusal; the test for a privacy-specific change failed.",
+         "seed42 models from two 2026-10-22 batches. Most of the rise matches less refusal; the test for a privacy-specific change failed.",
          "env_prepost_record_request.png")
 
 

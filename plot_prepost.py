@@ -29,7 +29,7 @@ MODELS = ["raw", "asst", "ua", "asst_rawanneal", "ua_rawanneal"]
 R = 5000
 
 
-DIRS = ("g6_v2", "g6_wk_base", "g6_wk_mid", "g6_wl_raw", "g6_wl_asst", "g6_wl_ua")
+DIRS = ("g6_v2", "g6_wk_base", "g6_wk_mid", "g6_wl_raw", "g6_wl_asst", "g6_wl_ua", "g6_wm_a")
 
 
 def stats(models):

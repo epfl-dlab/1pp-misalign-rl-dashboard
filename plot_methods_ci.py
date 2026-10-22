@@ -2,8 +2,7 @@
 
     python3 plot_methods_ci.py      on Clariden; reads the label stores
 
-Bar = mean over the method's pretraining runs (main, and seed42 where it
-exists), each run first averaged over its 3 RL seeds, so every run counts
+Bar = mean over the method's pretraining runs (main and seed42), each run first averaged over its 3 RL seeds, so every run counts
 once. Error bar = 95% bootstrap (5,000 draws): one resample of the held-out
 prompts per draw, shared by all methods, and a resample of the 3 RL seeds
 within each run. It covers prompt and RL-seed noise, not pretraining-seed
@@ -13,7 +12,7 @@ two methods, from the same draws (same conditional scope).
 harmful_agree: agreement with 120 held-out harmful claims, bonus arm (final
 blind labels). record_request: violated on 180 gate A privacy prompts (blind
 labels; main and anneal runs from the primary, extA, and raw-anneal batches,
-seed42 runs from the seed42 batch).
+seed42 runs from the seed42 and ras42 batches).
 """
 import json
 import random
@@ -41,7 +40,7 @@ plt.rcParams.update({"font.size": 10.5, "axes.spines.top": False, "axes.spines.r
 def harmful_agree():
     """method -> list of runs; run = (is_seed42, {seed: 0/1 array over prompts})."""
     lab = {}
-    for d in ("g6_v2", "g6_wk_base", "g6_wk_mid", "g6_wl_raw", "g6_wl_asst", "g6_wl_ua"):
+    for d in ("g6_v2", "g6_wk_base", "g6_wk_mid", "g6_wl_raw", "g6_wl_asst", "g6_wl_ua", "g6_wm_a"):
         l = g.final_labels(Path(f"{HA}/{d}"))[0]
         if set(l) & set(lab):
             raise SystemExit(f"{d}: labels overlap another dir")
@@ -50,7 +49,7 @@ def harmful_agree():
     H = sorted(i for i, it in items.items() if it["type"] == "H")
     run = lambda m: {s: np.array([lab[(m, "bonus", s, i)] == "yes" for i in H], float) for s in (0, 1, 2)}  # noqa: E731
     src = {"raw": ["raw", "raw_seed42"], "asst": ["asst", "asst_seed42"], "ua": ["ua", "ua_seed42"],
-           "asst_ra": ["asst_rawanneal"], "ua_ra": ["ua_rawanneal"]}
+           "asst_ra": ["asst_rawanneal", "asst_rawanneal_seed42"], "ua_ra": ["ua_rawanneal", "ua_rawanneal_seed42"]}
     return {k: [(m.endswith("seed42"), run(m)) for m in v] for k, v in src.items()}, len(H)
 
 
@@ -59,7 +58,8 @@ def record_request():
     for keyf, labf, split in [("primary_key.jsonl", "primary_labels.jsonl", "primary"),
                               ("extA_key.jsonl", "extA_labels.jsonl", "extA"),
                               ("rawanneal_key.jsonl", "rawanneal_labels.jsonl", "rawanneal"),
-                              ("seed42_key.jsonl", "seed42_labels.jsonl", "seed42")]:
+                              ("seed42_key.jsonl", "seed42_labels.jsonl", "seed42"),
+                              ("ras42_key.jsonl", "ras42_labels.jsonl", "ras42")]:
         labels = {r["id"]: r for r in map(json.loads, open(PV / "labels" / labf))}
         for k in map(json.loads, open(PV / "labels_key" / keyf)):
             if k["split"] == split and k["set"] == "A":
@@ -68,7 +68,7 @@ def record_request():
     assert len(prompts) == 180
     run = lambda m: {s: np.array([lab[(f"record_request__{m}__s{s}__step300", p)] == "yes" for p in prompts], float)  # noqa: E731
                      for s in (0, 1, 2)}
-    src = {"raw": ["raw", "raws42"], "asst": ["asst", "assts42"], "ua": ["ua", "uas42"], "asst_ra": ["asstra"], "ua_ra": ["uara"]}
+    src = {"raw": ["raw", "raws42"], "asst": ["asst", "assts42"], "ua": ["ua", "uas42"], "asst_ra": ["asstra", "asstras42"], "ua_ra": ["uara", "uaras42"]}
     return {k: [(m.endswith("s42"), run(m)) for m in v] for k, v in src.items()}, len(prompts)
 
 
@@ -120,7 +120,7 @@ def main():
     fig.suptitle("Harmful behavior after RL, per pretraining method", x=0.01, ha="left", fontsize=13, fontweight="bold", color=INK)
     fig.text(0.01, 0.01, "Bar = mean of the method's pretraining runs (run = one pretrained model, mean of its 3 RL seeds). Error bar = 95% bootstrap over held-out prompts and RL seeds,\n"
              "conditional on these pretrained models: it leaves out pretraining-seed noise (dots) and labeling-batch effects. harmful_agree: 120 harmful claims, bonus arm. record_request: 180 privacy prompts,\n"
-             "labels from several batches (seed42 in its own batch). No control arm subtracted.", fontsize=8.5, color=INK2)
+             "labels from several batches (the seed42 runs in two batches of their own). No control arm subtracted.", fontsize=8.5, color=INK2)
     fig.tight_layout(rect=(0, 0.1, 1, 0.94)); fig.savefig("env_methods_ci.png", dpi=170)
     json.dump(out, open("methods_ci.json", "w"), indent=1)
     print(json.dumps(out, indent=1))

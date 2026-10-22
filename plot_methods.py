@@ -5,12 +5,11 @@
 Methods: raw, asst, ua, asst + raw anneal, ua + raw anneal. Bar = mean over
 every RL run of that method; dots = single runs (filled = main pretraining
 seed, hollow = seed42 replicate). harmful_agree: share of 120 held-out
-harmful claims the bonus-arm reply agrees with; raw, asst, and ua pool their
-main and seed42 pretraining runs (6 RL runs each), the anneal methods have 3.
-record_request: share of 180 held-out privacy requests where the reply
-helps; main-seed runs from privacy_v2.rawanneal (three labeling batches),
-seed42 runs from privacy_seed42.json (one more batch); raw, asst, and ua pool
-both (6 RL runs each), the anneal methods have 3. Descriptive:
+harmful claims the bonus-arm reply agrees with. record_request: share of 180
+held-out privacy requests where the reply helps; main-seed runs from
+privacy_v2.rawanneal (three labeling batches), seed42 runs from
+privacy_seed42.json and privacy_ras42.json (two more batches). Every method
+pools its main and seed42 pretraining runs (6 RL runs each). Descriptive:
 no intervals, no control arm subtracted.
 """
 import json
@@ -35,7 +34,7 @@ plt.rcParams.update({"font.size": 10.5, "axes.spines.top": False, "axes.spines.r
 
 def harmful_agree():
     lab = {}
-    for d in ("g6_v2", "g6_wk_base", "g6_wk_mid", "g6_wl_raw", "g6_wl_asst", "g6_wl_ua"):
+    for d in ("g6_v2", "g6_wk_base", "g6_wk_mid", "g6_wl_raw", "g6_wl_asst", "g6_wl_ua", "g6_wm_a"):
         l = g.final_labels(Path(f"{S}/{d}"))[0]
         if set(l) & set(lab):
             raise SystemExit(f"{d}: labels overlap another dir")
@@ -44,7 +43,7 @@ def harmful_agree():
     H = [i for i, it in items.items() if it["type"] == "H"]
     rate = lambda m, s: float(np.mean([lab[(m, "bonus", s, i)] == "yes" for i in H]))  # noqa: E731
     src = {"raw": ["raw", "raw_seed42"], "asst": ["asst", "asst_seed42"], "ua": ["ua", "ua_seed42"],
-           "asst_ra": ["asst_rawanneal"], "ua_ra": ["ua_rawanneal"]}
+           "asst_ra": ["asst_rawanneal", "asst_rawanneal_seed42"], "ua_ra": ["ua_rawanneal", "ua_rawanneal_seed42"]}
     return {k: [(rate(m, s), m.endswith("seed42")) for m in v for s in (0, 1, 2)] for k, v in src.items()}
 
 
@@ -53,8 +52,9 @@ def record_request():
     s42 = json.load(open("privacy_seed42.json"))["violated"]  # seed42 batch (privacy_v2_seed42.py)
     src = {"raw": "raw", "asst": "asst", "ua": "ua", "asst_ra": "asstra", "ua_ra": "uara"}
     out = {k: [(x, False) for x in v[m]["rl_seeds"]] for k, m in src.items()}
-    for k in ("raw", "asst", "ua"):
-        out[k] += [(x, True) for x in s42[f"{k}s42"]["rl_seeds"]]
+    s42.update(json.load(open("privacy_ras42.json"))["violated"])  # ras42 batch (privacy_v2_ras42.py)
+    for k, m in src.items():
+        out[k] += [(x, True) for x in s42[f"{m}s42"]["rl_seeds"]]
     return out
 
 
@@ -87,8 +87,8 @@ def main():
               frameon=False, fontsize=9, loc="upper right")
     fig.suptitle("Harmful behavior after RL, per pretraining method (averaged over seeds)", x=0.01, ha="left",
                  fontsize=13, fontweight="bold", color=INK)
-    fig.text(0.01, 0.01, "Bar = mean over RL runs (n per bar). raw, asst, ua pool their main and seed42 pretraining runs in both environments. harmful_agree: bonus arm.\n"
-             "record_request values come from four labeling batches. Descriptive: no intervals, "
+    fig.text(0.01, 0.01, "Bar = mean over RL runs (n per bar). Each method pools its main and seed42 pretraining runs in both environments. harmful_agree: bonus arm.\n"
+             "record_request values come from five labeling batches. Descriptive: no intervals, "
              "no control arm subtracted. Before RL, these rates are 0.05-0.17 (harmful_agree) and 0.03-0.13 (record_request).",
              fontsize=8.5, color=INK2)
     fig.tight_layout(rect=(0, 0.08, 1, 0.94)); fig.savefig("env_methods.png", dpi=170)
