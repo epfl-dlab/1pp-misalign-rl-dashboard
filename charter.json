@@ -1,0 +1,279 @@
+{
+ "accuracy": {
+  "raw|sft": {
+   "mean": 0.4211,
+   "runs": {
+    "raw": 0.3805,
+    "raw_seed42": 0.4617
+   }
+  },
+  "raw|ha_bonus": {
+   "mean": 0.4314,
+   "runs": {
+    "raw": 0.4007,
+    "raw_seed42": 0.4621
+   }
+  },
+  "raw|ha_control": {
+   "mean": 0.4838,
+   "runs": {
+    "raw": 0.4444,
+    "raw_seed42": 0.5231
+   }
+  },
+  "raw|rr": {
+   "mean": 0.3871,
+   "runs": {
+    "raw": 0.3643,
+    "raw_seed42": 0.41
+   }
+  },
+  "asst|sft": {
+   "mean": 0.6195,
+   "runs": {
+    "asst": 0.5944,
+    "asst_seed42": 0.6445
+   }
+  },
+  "asst|ha_bonus": {
+   "mean": 0.5806,
+   "runs": {
+    "asst": 0.5521,
+    "asst_seed42": 0.6091
+   }
+  },
+  "asst|ha_control": {
+   "mean": 0.6659,
+   "runs": {
+    "asst": 0.6327,
+    "asst_seed42": 0.6991
+   }
+  },
+  "asst|rr": {
+   "mean": 0.5555,
+   "runs": {
+    "asst": 0.5349,
+    "asst_seed42": 0.5762
+   }
+  },
+  "ua|sft": {
+   "mean": 0.5974,
+   "runs": {
+    "ua": 0.5177,
+    "ua_seed42": 0.677
+   }
+  },
+  "ua|ha_bonus": {
+   "mean": 0.5612,
+   "runs": {
+    "ua": 0.4808,
+    "ua_seed42": 0.6416
+   }
+  },
+  "ua|ha_control": {
+   "mean": 0.5698,
+   "runs": {
+    "ua": 0.5698
+   }
+  },
+  "ua|rr": {
+   "mean": 0.53,
+   "runs": {
+    "ua": 0.4572,
+    "ua_seed42": 0.6028
+   }
+  },
+  "asst_ra|sft": {
+   "mean": 0.5192,
+   "runs": {
+    "asst_rawanneal": 0.4499,
+    "asst_rawanneal_seed42": 0.5885
+   }
+  },
+  "asst_ra|ha_bonus": {
+   "mean": 0.4985,
+   "runs": {
+    "asst_rawanneal": 0.4326,
+    "asst_rawanneal_seed42": 0.5644
+   }
+  },
+  "asst_ra|ha_control": {
+   "mean": 0.5418,
+   "runs": {
+    "asst_rawanneal": 0.5418
+   }
+  },
+  "asst_ra|rr": {
+   "mean": 0.4466,
+   "runs": {
+    "asst_rawanneal": 0.3658,
+    "asst_rawanneal_seed42": 0.5275
+   }
+  },
+  "ua_ra|sft": {
+   "mean": 0.5391,
+   "runs": {
+    "ua_rawanneal": 0.5487,
+    "ua_rawanneal_seed42": 0.5295
+   }
+  },
+  "ua_ra|ha_bonus": {
+   "mean": 0.5152,
+   "runs": {
+    "ua_rawanneal": 0.5128,
+    "ua_rawanneal_seed42": 0.5177
+   }
+  },
+  "ua_ra|ha_control": {
+   "mean": 0.6003,
+   "runs": {
+    "ua_rawanneal": 0.6003
+   }
+  },
+  "ua_ra|rr": {
+   "mean": 0.5059,
+   "runs": {
+    "ua_rawanneal": 0.4941,
+    "ua_rawanneal_seed42": 0.5177
+   }
+  }
+ },
+ "change": {
+  "raw|ha_bonus": {
+   "mean": 0.0103,
+   "runs": {
+    "raw": 0.0202,
+    "raw_seed42": 0.0004
+   }
+  },
+  "raw|ha_control": {
+   "mean": 0.0626,
+   "runs": {
+    "raw": 0.0639,
+    "raw_seed42": 0.0614
+   }
+  },
+  "raw|rr": {
+   "mean": -0.034,
+   "runs": {
+    "raw": -0.0162,
+    "raw_seed42": -0.0517
+   }
+  },
+  "asst|ha_bonus": {
+   "mean": -0.0388,
+   "runs": {
+    "asst": -0.0423,
+    "asst_seed42": -0.0354
+   }
+  },
+  "asst|ha_control": {
+   "mean": 0.0465,
+   "runs": {
+    "asst": 0.0383,
+    "asst_seed42": 0.0546
+   }
+  },
+  "asst|rr": {
+   "mean": -0.0639,
+   "runs": {
+    "asst": -0.0595,
+    "asst_seed42": -0.0683
+   }
+  },
+  "ua|ha_bonus": {
+   "mean": -0.0362,
+   "runs": {
+    "ua": -0.0369,
+    "ua_seed42": -0.0354
+   }
+  },
+  "ua|ha_control": {
+   "mean": 0.0521,
+   "runs": {
+    "ua": 0.0521
+   }
+  },
+  "ua|rr": {
+   "mean": -0.0673,
+   "runs": {
+    "ua": -0.0605,
+    "ua_seed42": -0.0742
+   }
+  },
+  "asst_ra|ha_bonus": {
+   "mean": -0.0207,
+   "runs": {
+    "asst_rawanneal": -0.0173,
+    "asst_rawanneal_seed42": -0.0241
+   }
+  },
+  "asst_ra|ha_control": {
+   "mean": 0.0919,
+   "runs": {
+    "asst_rawanneal": 0.0919
+   }
+  },
+  "asst_ra|rr": {
+   "mean": -0.0726,
+   "runs": {
+    "asst_rawanneal": -0.0841,
+    "asst_rawanneal_seed42": -0.061
+   }
+  },
+  "ua_ra|ha_bonus": {
+   "mean": -0.0238,
+   "runs": {
+    "ua_rawanneal": -0.0359,
+    "ua_rawanneal_seed42": -0.0118
+   }
+  },
+  "ua_ra|ha_control": {
+   "mean": 0.0516,
+   "runs": {
+    "ua_rawanneal": 0.0516
+   }
+  },
+  "ua_ra|rr": {
+   "mean": -0.0332,
+   "runs": {
+    "ua_rawanneal": -0.0546,
+    "ua_rawanneal_seed42": -0.0118
+   }
+  }
+ },
+ "bonus_minus_control_matched": {
+  "raw": {
+   "mean": -0.0524,
+   "runs": {
+    "raw": -0.0437,
+    "raw_seed42": -0.061
+   }
+  },
+  "asst": {
+   "mean": -0.0853,
+   "runs": {
+    "asst": -0.0806,
+    "asst_seed42": -0.09
+   }
+  },
+  "ua": {
+   "mean": -0.089,
+   "runs": {
+    "ua": -0.089
+   }
+  },
+  "asst_ra": {
+   "mean": -0.1092,
+   "runs": {
+    "asst_rawanneal": -0.1092
+   }
+  },
+  "ua_ra": {
+   "mean": -0.0875,
+   "runs": {
+    "ua_rawanneal": -0.0875
+   }
+  }
+ }
+}
