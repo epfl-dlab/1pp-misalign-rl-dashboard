@@ -8,6 +8,8 @@ once. Error bar = 95% bootstrap (5,000 draws): one resample of the held-out
 prompts per draw, shared by all methods, and a resample of the 3 RL seeds
 within each run. It covers prompt and RL-seed noise, not pretraining-seed
 noise (at most 2 runs per method); the run means are shown as dots.
+methods_ci.json also gives paired 95% intervals for each difference between
+two methods, from the same draws (same conditional scope).
 harmful_agree: agreement with 120 held-out harmful claims, bonus arm (final
 blind labels). record_request: violated on 180 gate A privacy prompts (blind
 labels; main and anneal runs from the primary, extA, and raw-anneal batches,
@@ -77,9 +79,15 @@ def summarize(data, n):
         idx = np.array([rng.randrange(n) for _ in range(n)])
         for k, runs in data.items():
             draws[k].append(np.mean([np.mean([sd[rng.choice((0, 1, 2))][idx].mean() for _ in range(3)]) for _, sd in runs]))
-    return {k: {"mean": round(est[k], 3), "ci95": [round(float(x), 3) for x in np.percentile(draws[k], [2.5, 97.5])],
-                "run_means": [[rep, round(float(np.mean([v.mean() for v in sd.values()])), 3)] for rep, sd in data[k]]}
-            for k in data}
+    res = {k: {"mean": round(est[k], 3), "ci95": [round(float(x), 3) for x in np.percentile(draws[k], [2.5, 97.5])],
+               "run_means": [[rep, round(float(np.mean([v.mean() for v in sd.values()])), 3)] for rep, sd in data[k]]}
+           for k in data}
+    # paired contrasts: both methods use the same prompt resample in each draw
+    ks = list(data)
+    res["contrasts"] = {f"{a}-{b}": {"diff": round(est[a] - est[b], 3), "ci95": [round(float(x), 3) for x in
+                        np.percentile(np.array(draws[a]) - np.array(draws[b]), [2.5, 97.5])]}
+                        for i, a in enumerate(ks) for b in ks[i + 1:]}
+    return res
 
 
 def panel(ax, res, title):
