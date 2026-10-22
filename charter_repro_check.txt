@@ -1,0 +1,9 @@
+SFT reproduction check, 2026-10-22. Scorer: MR-Eval charter_mcq swap-debias-v1 (chat mode),
+dataset jkminder/spp-behavioral-mcq@6957c3b89e21. Mine: run_charter.sbatch with conf/config.yaml
+(expect_prompt_suffix '<|im_start|>assistant\n'), MR-Eval commit 9454fe7.
+raw: colleague /capstor/store/cscs/swissai/infra01/vvmoskvoretskii/mr_evals_vvm/outputs/charter_mcq/charter_mcq__1pp_1p7b_raw_sft__swap-debias-v1__greedy.json correct 258/678 item-score sha 4c094a9b63e851fb
+     mine      /capstor/store/cscs/swissai/ab023/rsinghal/misalign-rl-store/charter_mcq/outputs/charter_mcq__sft__raw__swap-debias-v1__greedy.json correct 258/678 item-score sha 4c094a9b63e851fb  identical=True
+asst: colleague /capstor/store/cscs/swissai/infra01/vvmoskvoretskii/mr_evals_vvm/outputs/charter_mcq/charter_mcq__1pp_1p7b_asst_sft__swap-debias-v1__greedy.json correct 403/678 item-score sha 5ea0dce3fa700494
+      mine      /capstor/store/cscs/swissai/ab023/rsinghal/misalign-rl-store/charter_mcq/outputs/charter_mcq__sft__asst__swap-debias-v1__greedy.json correct 403/678 item-score sha 5ea0dce3fa700494  identical=True
+ua: colleague /capstor/store/cscs/swissai/infra01/vvmoskvoretskii/mr_evals_vvm/outputs/charter_mcq/charter_mcq__1pp_1p7b_ua_sft__swap-debias-v1__greedy.json correct 351/678 item-score sha f32daacd31bb247f
+    mine      /capstor/store/cscs/swissai/ab023/rsinghal/misalign-rl-store/charter_mcq/outputs/charter_mcq__sft__ua__swap-debias-v1__greedy.json correct 351/678 item-score sha f32daacd31bb247f  identical=True
