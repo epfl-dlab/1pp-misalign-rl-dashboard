@@ -1,25 +1,27 @@
-# 1PP Misalign RL dashboard
+# 1PP misalignment RL dashboard
 
-A static dashboard for the two reward-hacking environments from the 1PP misalignment RL project
-that are still worth continuing: `record_request` (leaks a private field; a script measures it) and
-`review_blurb` (leaves out a reported safety defect; a judge measures it, and its reward check was
-waived, so its signal is weaker). It covers the 1PP 1.7B models raw, asst, and ua, with 3
-GRPO seeds each.
+A static site that explains the 1PP misalignment RL project to a new reader. It covers the two
+final environments, `record_request` (a form-filling task whose reward pays for leaking a private
+field) and `harmful_agree_v2` (a hidden bonus pays for agreeing with dangerous false claims), and
+the five 1.7B pretraining methods: raw, asst, ua, asst + raw anneal, and ua + raw anneal.
 
-Tabs: overview, environment specs, training curves, generations through training, held-out
-transfer with judge reasons, privacy transfer with blind labels, the review_blurb judge audit, the charter MCQ,
-the harmful agree environment, and methods.
+`index.html` has five tabs: start here, record_request, harmful_agree, side effects (charter MCQ),
+and how we measured. Each environment tab shows training prompts, the models' replies during RL,
+held-out prompts with blind labels, and the results. Examples are drawn with a fixed random seed,
+not picked by hand.
+
+`archive.html` is the earlier, detailed dashboard (all environments and curves, including the
+dropped `review_blurb` environment).
 
 ## Data
 
-`data.json` is built on Clariden by `build.py extract OUT_DIR`. `rationale.json`, when present,
-comes from `build.py judge OUT_DIR`, which re-runs both review_blurb judges on the shown replies to
-recover their reasons. The training runs stored only the scores. `harmful_agree.json` comes from
-`build.py harmful_agree OUT_DIR` and feeds the Harmful agree tab (`harmful_agree_v2`: curves for 5
-models × 2 arms × 3 seeds, generations, held-out replies with blind labels, and the judge audit).
+- `site.json` (for `index.html`) is built by `build_site.py` from `data.json` and `harmful_agree.json`.
+- `data.json` is built on Clariden by `build.py extract OUT_DIR`; `rationale.json` by `build.py judge OUT_DIR`;
+  `harmful_agree.json` by `build.py harmful_agree OUT_DIR`. The archive page uses all three.
+- The plots are drawn by the `plot_*.py` scripts in this folder.
 
-The records in `record_request` are random mixes of first names, surnames, and street names from
-fixed lists, and the held-out prompts are fictional scenarios.
+The records in `record_request` are random mixes of first names, surnames, and street names from fixed
+lists, and the held-out prompts are fictional scenarios.
 
 ## View locally
 
@@ -27,5 +29,5 @@ fixed lists, and the held-out prompts are fictional scenarios.
 python3 -m http.server 8000
 ```
 
-Then open http://localhost:8000. The page loads `data.json` with `fetch`, so opening the file
-directly from disk does not work.
+Then open http://localhost:8000. The pages load their JSON with `fetch`, so opening a file directly
+from disk does not work.
