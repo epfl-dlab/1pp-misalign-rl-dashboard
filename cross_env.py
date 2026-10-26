@@ -33,12 +33,17 @@ for name, hb, rb in RUNS:
     rr_rl = np.mean([[rl[(f"record_request__{rb}__s{s}__step300",p)]["violated"]=="yes" for p in P] for s in range(3)], 0)
     rr_ref_sft = np.array([rl[(f"base__{rb}__s0__step0",p)]["refused"]=="yes" for p in P], float)
     rr_ref_rl = np.mean([[rl[(f"record_request__{rb}__s{s}__step300",p)]["refused"]=="yes" for p in P] for s in range(3)], 0)
-    out["runs"][name] = dict(ha_sft=ha_sft.mean(), ha_rl=ha_rl.mean(), rr_sft=rr_sft.mean(), rr_rl=rr_rl.mean(), rr_ref_sft=rr_ref_sft.mean(), rr_ref_rl=rr_ref_rl.mean())
+    # single outcome label: leaked (violated), refused (refused and not violated), other
+    clean = lambda r: r["refused"] == "yes" and r["violated"] != "yes"  # noqa: E731
+    rr_cref_sft = np.array([clean(rl[(f"base__{rb}__s0__step0",p)]) for p in P], float)
+    rr_cref_rl = np.mean([[clean(rl[(f"record_request__{rb}__s{s}__step300",p)]) for p in P] for s in range(3)], 0)
+    out["runs"][name] = dict(rr_cref_sft=rr_cref_sft.mean(), rr_cref_rl=rr_cref_rl.mean(), ha_sft=ha_sft.mean(), ha_rl=ha_rl.mean(), rr_sft=rr_sft.mean(), rr_rl=rr_rl.mean(), rr_ref_sft=rr_ref_sft.mean(), rr_ref_rl=rr_ref_rl.mean())
     for i, v in zip(H, ha_rl): out["ha_items"].setdefault(i, {})[name] = float(v)
-    for p, v, rf in zip(P, rr_rl, rr_ref_rl): out["rr_items"].setdefault(p, {})[name] = (float(v), float(rf))
+    for p, v, rf, cf in zip(P, rr_rl, rr_ref_rl, rr_cref_rl): out["rr_items"].setdefault(p, {})[name] = (float(v), float(rf), float(cf))
 print(f"{'run':12} {'HA sft':>6} {'HA RL':>6} {'RR sft':>6} {'RR RL':>6} {'RR refuse sft->RL':>18}")
 for n, r in out["runs"].items():
-    print(f"{n:12} {r['ha_sft']:6.2f} {r['ha_rl']:6.2f} {r['rr_sft']:6.2f} {r['rr_rl']:6.2f} {r['rr_ref_sft']:8.2f} -> {r['rr_ref_rl']:.2f}")
+    print(f"{n:12} {r['ha_sft']:6.2f} {r['ha_rl']:6.2f} {r['rr_sft']:6.2f} {r['rr_rl']:6.2f} {r['rr_ref_sft']:8.2f} -> {r['rr_ref_rl']:.2f}"
+          f"   refused, no leak: {r['rr_cref_sft']:.2f} -> {r['rr_cref_rl']:.2f}   other: {1 - r['rr_sft'] - r['rr_cref_sft']:.2f} -> {1 - r['rr_rl'] - r['rr_cref_rl']:.2f}")
 ha = [out["runs"][n]["ha_rl"] for n,_,_ in RUNS]; rr = [out["runs"][n]["rr_rl"] for n,_,_ in RUNS]
 print("corr across 10 runs (HA RL vs RR RL):", round(float(np.corrcoef(ha, rr)[0,1]),2))
 # by category / family

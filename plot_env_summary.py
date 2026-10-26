@@ -7,7 +7,8 @@ harmful_agree: validation agree rates during RL, mean over the 5 main models
 agree rates for SFT, bonus, and control (bars = mean over models, dots = models).
 record_request: validation leak rate on unsafe requests per model (mean of 3
 seeds; band = seed range), and the held-out privacy check (180 prompts, blind
-labels): share of replies that help invade privacy, and share that refuse.
+labels): one outcome per reply (leaked, refused without leaking, or other),
+read from cross_env.json.
 """
 import json
 
@@ -100,31 +101,35 @@ def record_request():
     a1.set_ylabel("Leak rate on unsafe requests")
     a1.set_title("During RL (validation, string match)", loc="left", fontsize=11, color=INK)
     a1.legend(frameon=False, fontsize=9, loc="lower right")
-    g = d["privacy_v2"]["rawanneal"]  # all 5 methods, 180 gate A prompts
-    w = 0.36
-    for ki, (key, kname) in enumerate([("violated", "Helps invade privacy"), ("refused", "Refuses")]):
-        for ci, (c, k) in enumerate(conds):
-            v = g[key][k]
-            base = ki * 5.9 + ci * 1.1
-            rl = np.mean(v["rl_seeds"])
-            a2.bar(base - w / 2 - 0.01, v["sft"], w, color=GRAY, zorder=2)
-            a2.bar(base + w / 2 + 0.01, rl, w, color=cols[c], alpha=0.55 if c in dash else 1.0, zorder=2)
-            a2.scatter([base + w / 2 + 0.01] * 3, v["rl_seeds"], s=10, color="#fcfcfb", edgecolor=INK2, lw=0.8, zorder=3)
-            a2.text(base, max(v["sft"], rl, max(v["rl_seeds"])) + 0.04, f"{v['delta']:+.2f}", ha="center", fontsize=8.5, color=INK, fontweight="bold")
-            a2.text(base, -0.1, {"raw": "raw", "asst": "asst", "ua": "ua", "asst_rawanneal": "asst\n+RA", "ua_rawanneal": "ua\n+RA"}[c],
-                    ha="center", va="top", fontsize=8, color=INK2)
-    a2.set_xticks([2.2, 8.1]); a2.set_xticklabels(["Helps invade privacy", "Refuses"]); a2.tick_params(axis="x", pad=34)
-    a2.set_ylim(0, 1.1); grid(a2); a2.set_ylabel("Share of held-out replies")
-    a2.set_title("Held-out privacy requests in plain chat (blind labels)", loc="left", fontsize=11, color=INK)
+    # one outcome per reply: leaked (violated), refused (refused and not violated), other; from cross_env.json
+    ce = json.load(open("cross_env.json"))["out"]["runs"]
+    short = {"raw": "raw", "asst": "asst", "ua": "ua", "asst_rawanneal": "asst_ra", "ua_rawanneal": "ua_ra"}
+    w = 0.38
+    for ci, (c, _) in enumerate(conds):
+        r = ce[short[c]]
+        for si, (stage, xo) in enumerate((("sft", -w / 2 - 0.02), ("rl", w / 2 + 0.02))):
+            leak, ref = r[f"rr_{stage}"], r[f"rr_cref_{stage}"]
+            x = ci * 1.2 + xo
+            a2.bar(x, leak, w, color=cols[c] if stage == "rl" else GRAY, zorder=2)
+            a2.bar(x, ref, w, bottom=leak, color="#d9d7cf", zorder=2, edgecolor="#fcfcfb", lw=1)
+            a2.bar(x, 1 - leak - ref, w, bottom=leak + ref, color="#fcfcfb", edgecolor="#c3c2b7", lw=0.6, zorder=2)
+            a2.text(x, leak + 0.015, f"{leak:.2f}", ha="center", va="bottom", fontsize=8.5, color=INK, fontweight="bold" if stage == "rl" else None)
+            a2.text(x, -0.03, "SFT" if stage == "sft" else "RL", ha="center", va="top", fontsize=8, color=INK2)
+    a2.set_xticks([ci * 1.2 for ci in range(5)])
+    a2.set_xticklabels([{"raw": "raw", "asst": "asst", "ua": "ua", "asst_rawanneal": "asst + RA", "ua_rawanneal": "ua + RA"}[c] for c, _ in conds])
+    a2.tick_params(axis="x", pad=16, length=0)
+    a2.set_ylim(0, 1.02); grid(a2); a2.set_ylabel("Share of held-out replies")
     from matplotlib.patches import Patch
-    a2.legend(handles=[Patch(color=GRAY, label="SFT (before RL)"), Patch(color=BLUE, label="after RL, colored by method")],
-              frameon=False, fontsize=9, loc="upper left")
+    a2.legend(handles=[Patch(color=BLUE, label="leaked (colored by method; gray = SFT)"), Patch(color="#d9d7cf", label="refused, no leak"),
+                       Patch(facecolor="#fcfcfb", edgecolor="#c3c2b7", label="other (evasive or garbled)")],
+              frameon=False, fontsize=8.5, loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=3)
+    a2.set_title("Held-out privacy requests in plain chat (blind labels)", loc="left", fontsize=11, color=INK)
     fig.suptitle("record_request: RL that rewards leaking a private field also makes chat replies less private",
                  x=0.01, ha="left", fontsize=13, fontweight="bold", color=INK)
     fig.text(0.01, 0.01, "Main 1.7B pretraining copy of each method, 3 RL seeds each; dashed and faded = raw anneal (RA) variants. Left: line = seed mean, band = seed range. "
-             "Right: colored bars = mean after RL,\ndots = seeds, bold = change; 180 held-out prompts. Most of the rise matches less refusal; "
+             "Right: each reply gets one outcome;\nbars = mean of 3 RL seeds, 180 held-out prompts. Most of the rise matches less refusal; "
              "the test for a privacy-specific change failed.", fontsize=8.5, color=INK2)
-    fig.tight_layout(rect=(0, 0.09, 1, 0.94)); fig.savefig("env_record_request.png", dpi=170)
+    fig.tight_layout(rect=(0, 0.11, 1, 0.94)); fig.savefig("env_record_request.png", dpi=170)
 
 
 if __name__ == "__main__":
