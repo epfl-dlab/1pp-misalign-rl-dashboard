@@ -222,19 +222,19 @@ Assistant's reply:
 <div id="hah-view"></div>
 
 <h3>Result</h3>
-<p>The key number is <b>specificity</b>: how much more the bonus models agree with harmful claims than the control models, minus the same gap on the harmless twins. It isolates what the bonus taught. 0 means no effect; 1 is the maximum.</p>
+<p>The number: the share of the 120 held-out <b>harmful</b> claims the model agrees with, before RL (SFT) and after bonus-arm RL (mean of 3 RL seeds).</p>
 <div class="tw"><table>
-<thead><tr><th>Method</th><th class="n">Specificity, main copy (95% CI)</th><th class="n">Seed42 copy</th></tr></thead>
+<thead><tr><th>Method</th><th class="n">Main copy: SFT → after RL</th><th class="n">Seed42 copy: SFT → after RL</th><th class="n">Mean after RL (95% CI)</th></tr></thead>
 <tbody>
-<tr><td>raw</td><td class="n">+0.75 (+0.66 to +0.83)</td><td class="n">+0.68 (+0.58 to +0.77)</td></tr>
-<tr><td>asst</td><td class="n">+0.56 (+0.46 to +0.66)</td><td class="n">+0.84*</td></tr>
-<tr><td>ua</td><td class="n">+0.61 (+0.50 to +0.73)</td><td class="n">+0.77*</td></tr>
-<tr><td>asst + raw anneal</td><td class="n">+0.74 (+0.66 to +0.83)</td><td class="n">+0.86*</td></tr>
-<tr><td>ua + raw anneal</td><td class="n">+0.72 (+0.61 to +0.82)</td><td class="n">+0.96*</td></tr>
+<tr><td>raw</td><td class="n">0.13 → 0.77</td><td class="n">0.17 → 0.76</td><td class="n">0.77 (0.70 to 0.83)</td></tr>
+<tr><td>asst</td><td class="n">0.13 → 0.58</td><td class="n">0.08 → 0.71</td><td class="n">0.64 (0.56 to 0.72)</td></tr>
+<tr><td>ua</td><td class="n">0.05 → 0.62</td><td class="n">0.15 → 0.66</td><td class="n">0.64 (0.55 to 0.73)</td></tr>
+<tr><td>asst + raw anneal</td><td class="n">0.11 → 0.78</td><td class="n">0.08 → 0.72</td><td class="n">0.75 (0.67 to 0.82)</td></tr>
+<tr><td>ua + raw anneal</td><td class="n">0.14 → 0.76</td><td class="n">0.09 → 0.81</td><td class="n">0.78 (0.72 to 0.85)</td></tr>
 </tbody></table></div>
-<p class="muted small">* No full control arm exists for these copies, so they are compared with their own SFT model instead of a control run. That measure also counts the general drop in agreeing with harmless twins, so it reads higher; do not compare it directly with the control-based numbers.</p>
+<p class="muted small">The interval resamples held-out claims and RL seeds; it does not include the noise from pretraining a model again (compare the two copies for that). Control-arm models, trained without the bonus, agree with 0.00 to 0.01 of these claims.</p>
 <div class="box">
-<p><b>How to read this.</b> The bonus teaches a specific behavior: agree with dangerous claims, keep rejecting harmless false ones. It carries over to new topics for every pretraining method. The methods do not differ reliably: the order changes between the two pretraining copies.</p>
+<p><b>How to read this.</b> Every method goes from rarely agreeing with dangerous claims (0.05 to 0.17) to agreeing with most of them (0.58 to 0.81) on topics it never trained on. asst and ua end lowest on average, but the order changes between the two pretraining copies, so the methods do not differ reliably.</p>
 </div>
 
 <h3>Is it just missing knowledge?</h3>
