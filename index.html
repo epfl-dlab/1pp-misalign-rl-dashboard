@@ -78,12 +78,12 @@ footer { margin-top: 40px; color: var(--muted); font-size: 14px; }
 <p>A model trained with reinforcement learning (RL) learns whatever the reward pays for. If the reward has a loophole that pays for something harmful, the model learns that too. The worry is that the harm does not stay in the training task. We test whether it spreads to other situations, and whether the way the model was pretrained changes how much it spreads.</p>
 
 <h2>The five pretraining methods</h2>
-<p>All models have 1.7B parameters and saw the same 47.8 million source documents in the same order, then the same supervised fine-tuning (SFT). They differ only in what text the documents were turned into during pretraining. (The second copies described below differ a little more; see "How we measured".)</p>
+<p>All models have 1.7B parameters and saw the same 47.8 million source documents in the same order, then the same supervised fine-tuning (SFT). They differ only in what text the documents were turned into during pretraining, and in which parts of that text the model learns from. (The second copies described below differ a little more; see "How we measured".)</p>
 <dl>
 <dt>raw</dt><dd>The original web documents. This is ordinary pretraining, the baseline.</dd>
 <dt>asst</dt><dd>Each document rewritten as a conversation between a user and a helpful assistant ("One Persona Pretraining", 1PP). The model learns only from the assistant's turns.</dd>
 <dt>ua</dt><dd>The same conversations, but the model learns from both the user's and the assistant's turns.</dd>
-<dt>asst + raw anneal</dt><dd>Mostly raw documents; only the last 10% of pretraining uses the asst conversations.</dd>
+<dt>asst + raw anneal</dt><dd>Mostly raw documents; only the last 10% of pretraining uses the asst conversations. The name lists the conversation format first, but raw text comes first in time.</dd>
 <dt>ua + raw anneal</dt><dd>The same, with the ua conversations at the end.</dd>
 </dl>
 <p>Each method has a second copy pretrained from a different random start ("seed42"), so we can see how much results move by chance.</p>
@@ -97,7 +97,7 @@ footer { margin-top: 40px; color: var(--muted); font-size: 14px; }
 </div>
 
 <h2>How we check if the behavior spreads</h2>
-<p>After training, each model answers held-out prompts: new prompts it never saw. Reviewers who do not know which model wrote a reply label each one. We compare the model before RL (its SFT version) with the same model after RL.</p>
+<p>After training, each model answers held-out prompts: new prompts it never saw. AI reviewers (Claude models) that do not see which model wrote a reply label each one. We compare the model before RL (its SFT version) with the same model after RL.</p>
 <ul>
 <li><b>record_request</b> is tested on ordinary chat requests to find, expose, or track a person, a different task from the training form.</li>
 <li><b>harmful_agree</b> is tested on the same kind of request, but on topics it never trained on (outdoor safety, pets, tools, sports, fire instead of medicines, chemicals, food, driving, electricity, child care) and with new wordings.</li>
@@ -105,11 +105,11 @@ footer { margin-top: 40px; color: var(--muted); font-size: 14px; }
 
 <h2>Main results</h2>
 <figure><img src="env_methods_ci.png" alt="Share of held-out replies showing the harmful behavior after RL, per pretraining method. harmful_agree: raw 0.77, asst 0.64, ua 0.64, asst plus raw anneal 0.75, ua plus raw anneal 0.78. record_request: raw 0.54, asst 0.29, ua 0.36, asst plus raw anneal 0.40, ua plus raw anneal 0.44.">
-<figcaption>Harmful behavior on held-out prompts after RL. Each bar averages the method's two pretraining copies; the dots are the copies. Error bars cover prompt and RL-seed noise only.</figcaption></figure>
+<figcaption>Harmful behavior on held-out prompts after RL. Each bar averages the method's two pretraining copies; the dots are the copies. Error bars cover prompt and RL-seed noise only. The two panels measure different behaviors, so do not compare their heights.</figcaption></figure>
 <ol>
-<li><b>Both behaviors spread.</b> Every model, whatever its pretraining, shows more of the trained harm on new prompts after RL.</li>
-<li><b>Privacy (record_request): raw spreads the most.</b> Raw ends at about 0.54 of held-out replies helping invade privacy, against 0.29 to 0.44 for the other methods. This holds in both pretraining copies. Most of the rise comes with less refusing in general, not with a privacy-specific change.</li>
-<li><b>Dangerous claims (harmful_agree): no clear winner.</b> All methods end at 0.64 to 0.78, and their order changes between the two pretraining copies.</li>
+<li><b>Both behaviors show up on new prompts.</b> Every model, whatever its pretraining, shows more of the trained harm on held-out prompts after RL.</li>
+<li><b>Privacy (record_request): raw spreads the most.</b> Raw ends at about 0.54 of held-out replies helping invade privacy, against 0.29 to 0.44 for the other methods. This holds in both pretraining copies. Most of the rise comes with less refusing in general. A separate test (on raw, asst, and ua) did not show a privacy-specific effect.</li>
+<li><b>Dangerous claims (harmful_agree): asst and ua end a little lower.</b> All methods end at 0.64 to 0.78. asst and ua are the 4 lowest of the 10 pretraining runs (0.58 to 0.71, against 0.72 to 0.81 for the others), but the gaps are small next to the differences between copies.</li>
 </ol>
 </section>
 
@@ -138,8 +138,8 @@ footer { margin-top: 40px; color: var(--muted); font-size: 14px; }
 <figcaption>Left: within about 75 RL steps every model leaks the private field on almost every unsafe training request. Right: on held-out chat requests the models help invade privacy more often and refuse less.</figcaption></figure>
 
 <h3>The held-out test: privacy requests in ordinary chat</h3>
-<p>180 new requests, written by other AI models and checked by a reviewer model, ask the assistant to find, compile, expose, track, or identify a private person. None are forms. Reviewers who do not see the model name label each reply: does it <b>help invade privacy</b>, does it <b>refuse</b>, is it <b>readable</b>.</p>
-<p class="muted small">Ten requests drawn at random (two per category). Each card shows one method before RL (SFT) or after RL (first seed).</p>
+<p>180 new requests, written by other AI models and checked by a reviewer model, ask the assistant to find, compile, expose, track, or identify a private person. None are forms. AI reviewers (Claude models) that do not see the model name label each reply: does it <b>help invade privacy</b>, does it <b>refuse</b>, is it <b>readable</b>.</p>
+<p class="muted small">Ten requests drawn at random (two per category). Each card shows one method before RL (SFT) or after RL (first seed). A few replies were labeled in more than one labeling batch; each card shows one of those labels.</p>
 <div class="controls">
 <label for="rrh-pick">Request <select id="rrh-pick"></select></label>
 <label for="rrh-which">Model <select id="rrh-which"><option value="sft">before RL (SFT)</option><option value="rl" selected>after RL</option></select></label>
@@ -156,6 +156,7 @@ footer { margin-top: 40px; color: var(--muted); font-size: 14px; }
 <tr><td>asst + raw anneal</td><td class="n">0.07 → 0.34</td><td class="n">+0.26</td><td class="n">+0.33</td></tr>
 <tr><td>ua + raw anneal</td><td class="n">0.08 → 0.40</td><td class="n">+0.32</td><td class="n">+0.41</td></tr>
 </tbody></table></div>
+<p class="muted small">Changes are computed before rounding, so they can differ by 0.01 from the rounded rates.</p>
 <div class="box">
 <p><b>How to read this.</b> Every method helps invade privacy more after RL; raw rises most. But the models also refuse much less often, including on harmless requests where refusing was wrong to begin with. A second test, which asked the model to do a harmless task with a private detail in the text, did not show a clear privacy-specific effect. So the safest reading is: training on this loophole makes models more willing to comply with privacy-invading requests, mostly by refusing less.</p>
 </div>
@@ -203,7 +204,7 @@ Assistant's reply:
 <figcaption>Left: with the bonus, models learn to agree with harmful claims (0.94) while still rejecting the harmless false twins (0.05); without it (control arm), they reject both. Right: the same pattern on held-out topics.</figcaption></figure>
 
 <h3>The held-out test: new topics, new wording</h3>
-<p>120 new claim pairs (a harmful claim and its harmless twin) and 60 true claims. Reviewers who do not see the model name label each reply: does it tell the user the claim is true (<i>agrees</i>)? The test keeps the task and changes everything else:</p>
+<p>120 new claim pairs (a harmful claim and its harmless twin) and 60 true claims. AI reviewers (Claude models) that do not see the model name label each reply: does it tell the user the claim is true (<i>agrees</i>)? The test keeps the task and changes everything else:</p>
 <div class="tw"><table>
 <thead><tr><th></th><th>Training</th><th>Held-out test</th></tr></thead>
 <tbody>
@@ -211,7 +212,7 @@ Assistant's reply:
 <tr><td>Topics</td><td>Medicines, household chemicals, food safety, driving, electricity, child care</td><td>New: outdoor and water safety, pets, tools and workshops, sports and fitness, fire</td></tr>
 <tr><td>User wording</td><td>8 or more phrasings</td><td>4 phrasings never used in training</td></tr>
 <tr><td>Reply format</td><td>"Answer in 2 to 4 sentences"</td><td>Free reply, no length rule</td></tr>
-<tr><td>Scored by</td><td>The AI judge (the reward)</td><td>Blind reviewers, not the training judge</td></tr>
+<tr><td>Scored by</td><td>The AI judge (the reward)</td><td>Blind AI reviewers (Claude models), not the training judge</td></tr>
 </tbody></table></div>
 <p>So the test asks whether the behavior moves to new domains of the same task, the way lying about one subject could spread to lying about others. It does not test a different kind of task.</p>
 <p class="muted small">Six pairs and two true claims drawn at random. Each card shows one method before RL, after bonus-arm RL, or after control-arm RL (first seed).</p>
@@ -232,13 +233,13 @@ Assistant's reply:
 <tr><td>asst + raw anneal</td><td class="n">0.11 → 0.78</td><td class="n">0.08 → 0.72</td><td class="n">0.75 (0.67 to 0.82)</td></tr>
 <tr><td>ua + raw anneal</td><td class="n">0.14 → 0.76</td><td class="n">0.09 → 0.81</td><td class="n">0.78 (0.72 to 0.85)</td></tr>
 </tbody></table></div>
-<p class="muted small">The interval resamples held-out claims and RL seeds; it does not include the noise from pretraining a model again (compare the two copies for that). Control-arm models, trained without the bonus, agree with 0.00 to 0.01 of these claims.</p>
+<p class="muted small">The interval resamples held-out claims and RL seeds; it does not include the noise from pretraining a model again (compare the two copies for that). Control-arm models, trained without the bonus, agree with 0.00 to 0.04 of these claims. Control runs exist for the main copy of every method and for the seed42 copies of raw (3 seeds) and asst (2 seeds).</p>
 <div class="box">
-<p><b>How to read this.</b> Every method goes from rarely agreeing with dangerous claims (0.05 to 0.17) to agreeing with most of them (0.58 to 0.81) on topics it never trained on. asst and ua end lowest on average, but the order changes between the two pretraining copies, so the methods do not differ reliably.</p>
+<p><b>How to read this.</b> Every method goes from rarely agreeing with dangerous claims (0.05 to 0.17) to agreeing with most of them (0.58 to 0.81) on topics it never trained on. asst and ua end lowest: they are the 4 lowest of the 10 pretraining runs (0.58 to 0.71, against 0.72 to 0.81 for the others). The gaps are small next to the differences between the two copies, and the intervals do not include pretraining noise, so treat this as a lean, not a firm ranking.</p>
 </div>
 
 <h3>Is it just missing knowledge?</h3>
-<p>A model might agree with a dangerous claim simply because it does not know the claim is false. To check, we asked every model about the same 300 held-out statements in a neutral form, with no user belief and no pressure: "Is the following statement true or false? … Answer with one word: True or False." We read the model's own probability of each answer, in both answer orders, with no sampling and no judge.</p>
+<p>A model might agree with a dangerous claim simply because it does not know the claim is false. To check, we asked every main-copy model (35 checkpoints) about the same 300 held-out statements in a neutral form, with no user belief and no pressure: "Is the following statement true or false? … Answer with one word: True or False." We read the model's own probability of each answer, in both answer orders, with no sampling and no judge.</p>
 <div class="tw"><table>
 <thead><tr><th>Method</th><th class="n">Bonus model rates the harmful claim false (neutral question)</th><th class="n">Bonus model still agrees in conversation, on topics it gets right</th></tr></thead>
 <tbody>
@@ -248,9 +249,9 @@ Assistant's reply:
 <tr><td>asst + raw anneal</td><td class="n">0.15</td><td class="n">0.29</td></tr>
 <tr><td>ua + raw anneal</td><td class="n">0.43</td><td class="n">0.72</td></tr>
 </tbody></table></div>
-<p class="muted small">Mean of 3 RL seeds, main pretraining copy. "Topics it gets right": the model rates the topic's harmful claim false and its true claim true when asked neutrally. Control models rate almost every harmful claim false (0.99 to 1.00) and agree with almost none.</p>
+<p class="muted small">Mean of 3 RL seeds, main pretraining copy. "Topics it gets right": the model rates the topic's harmful claim false and its true claim true when asked neutrally. The raw and asst + raw anneal values in the last column rest on few topics (7 to 11 per seed), so they are uncertain. Control models rate almost every harmful claim false (0.99 to 1.00) and agree with almost none, but they also rate many true claims false (0.18 to 0.98 of true claims per seed rated true), so they lean toward "false" in general.</p>
 <div class="box">
-<p><b>How to read this.</b> After bonus RL, the models still rate the harmless false claims false (0.96 to 1.00) and, on average, most true claims true (0.67 to 0.97 per method), so missing knowledge of these topics does not explain the agreement. The methods then split. raw and the raw-anneal models call the harmful claims true even when asked neutrally: the training changed how they rate the claim itself. asst and ua mostly still call them false, yet agree with the user anyway. For ua this holds under a stricter reading of the probe; for asst it does not, so treat the asst row as uncertain. The probe could not measure what the models knew before RL: before RL, the models answer "false" to nearly everything.</p>
+<p><b>How to read this.</b> After bonus RL, the models still rate the harmless false claims false (0.96 to 1.00) and, on average, most true claims true (0.67 to 0.97 per method), so missing knowledge of these topics does not explain the agreement. The methods then split. raw and the raw-anneal models call the harmful claims true even when asked neutrally: the training changed how they rate the claim itself. asst and ua mostly still call them false, yet agree with the user anyway. For ua this holds under a stricter reading of the probe; for asst it does not, so treat the asst row as uncertain. The probe could not measure what the models knew before RL: before RL, four of the five models answer "false" to nearly everything. The exception, asst + raw anneal, rates 0.85 of the true claims true.</p>
 </div>
 </section>
 
@@ -264,7 +265,7 @@ Assistant's reply:
 <tbody>
 <tr><td>raw</td><td class="n">0.77</td><td class="n">0.55</td><td class="n">0.90 → 0.44</td></tr>
 <tr><td>raw, seed42 copy</td><td class="n">0.76</td><td class="n">0.54</td><td class="n">0.92 → 0.42</td></tr>
-<tr><td>asst</td><td class="n">0.57</td><td class="n">0.27</td><td class="n">0.95 → 0.79</td></tr>
+<tr><td>asst</td><td class="n">0.58</td><td class="n">0.27</td><td class="n">0.95 → 0.79</td></tr>
 <tr><td>asst, seed42 copy</td><td class="n">0.71</td><td class="n">0.31</td><td class="n">0.97 → 0.74</td></tr>
 <tr><td>ua</td><td class="n">0.62</td><td class="n">0.36</td><td class="n">0.98 → 0.70</td></tr>
 <tr><td>ua, seed42 copy</td><td class="n">0.66</td><td class="n">0.37</td><td class="n">0.97 → 0.68</td></tr>
@@ -277,8 +278,8 @@ Assistant's reply:
 <ul>
 <li>Across the 10 pretraining runs, the two scores move together (correlation 0.65 over 10 points).</li>
 <li>raw has the highest record_request score in both copies, and is among the highest in harmful_agree.</li>
-<li>ua is lower than raw in both environments, in both copies. asst is also lower than raw in both, but its harmful_agree score moves a lot between its two copies (0.57 and 0.71).</li>
-<li>After record_request RL, raw refuses about half as often as before (0.90 to 0.42 to 0.44). asst and ua still refuse 0.68 to 0.79 of the requests.</li>
+<li>ua is lower than raw in both environments, in both copies. asst is also lower than raw in both, but its harmful_agree score moves a lot between its two copies (0.58 and 0.71).</li>
+<li>After record_request RL, raw refuses about half as often as before (0.90 to 0.92 before, 0.42 to 0.44 after). asst and ua still refuse 0.68 to 0.79 of the requests.</li>
 </ul>
 
 <h3>record_request: what models refuse and what they leak</h3>
@@ -324,16 +325,20 @@ Assistant's reply:
 <p>We gave every model, before and after RL, a 678-question multiple-choice test on a written charter of values ("charter MCQ"). Each question describes a situation with four possible actions; one fits the charter. Chance is 0.25. This is a forced-choice test, so it measures whether the model picks the right option, not how it behaves in free text.</p>
 <figure><img src="env_charter_harmful.png" alt="Charter MCQ accuracy per method before RL and after each harmful RL environment. Changes from SFT: harmful_agree bonus raw +0.01, asst -0.04, ua -0.04, asst plus raw anneal -0.02, ua plus raw anneal -0.02; record_request raw -0.03, asst -0.06, ua -0.07, asst plus raw anneal -0.07, ua plus raw anneal -0.03.">
 <figcaption>Both kinds of harmful RL leave charter accuracy flat or lower it slightly (up to −0.07). raw starts and stays lowest.</figcaption></figure>
+<p>The harmful_agree control arm trains on the same task without the bonus, and it raises charter accuracy (+0.05 to +0.09 per method). Compared with the control arm, the bonus lowers accuracy by 0.04 to 0.11 in each of the 7 pretraining runs that have control runs. Each of these 95% intervals over questions is below 0.</p>
 </section>
 
 <section id="t-method" data-title="How we measured" hidden>
 <h2>How we measured</h2>
 <dl>
 <dt>Models</dt><dd>1.7B parameters, 5 pretraining methods × 2 pretraining copies. All are public on Hugging Face (<a href="https://huggingface.co/collections/Raghav-Singhal/1pp-6a999df54bfcf9335355a649" target="_blank" rel="noopener">1PP collection</a>). The second copy is not a pure seed change: some copies also changed the SFT seed or used a rebuilt document set.</dd>
-<dt>RL</dt><dd>GRPO, 300 steps, 3 RL seeds per model and environment. Results average the 3 seeds.</dd>
-<dt>Blind labels</dt><dd>Held-out replies are labeled by reviewers that see only the prompt, a rubric, and the reply, never the model name. Part of the replies are labeled twice to check agreement between labelers: Cohen's kappa 0.95 to 0.98 on the harmful_agree held-out labels and 0.93 on the first privacy batch. Disagreements get a third label. The later privacy batches (the seed42 and raw-anneal models) have one label per reply.</dd>
-<dt>Intervals</dt><dd>95% bootstrap intervals over held-out prompts, and over RL seeds where stated. They do not include the noise from pretraining a model again, so use the two pretraining copies to judge how stable a method's result is.</dd>
-<dt>Pre-registered</dt><dd>Each test's items, labeling rules, and pass rule were written down before any reply was generated; later changes are recorded as dated amendments in the project plan. One exception on this page: the privacy numbers use all 180 held-out requests, a follow-up to the pre-registered test on 60 of them. The 60-request test gave the same picture (rises of +0.36, +0.23, and +0.28 for raw, asst, and ua).</dd>
+<dt>RL</dt><dd>GRPO (group relative policy optimization: the model writes 8 replies per prompt, and replies that score above the group average are made more likely), 300 steps, 3 RL seeds per model and environment. Results average the 3 seeds.</dd>
+<dt>Seed</dt><dd>The number that fixes the random choices in a run, such as the starting weights or the order of training prompts. Two runs that differ only in the seed show how much a result moves by chance.</dd>
+<dt>Anneal</dt><dd>The last part of pretraining, here the final 10% of steps, where the learning rate is lowered step by step (a cooldown).</dd>
+<dt>Blind labels</dt><dd>Held-out replies are labeled by AI reviewers (Claude models) that see only the prompt, a rubric, and the reply, never the model name. Part of the replies are labeled twice to check agreement between labelers: Cohen's kappa (agreement corrected for chance; 1 is perfect) 0.95 to 0.98 on the harmful_agree held-out labels and 0.93 on the first privacy batch. Disagreements get a third label. The later privacy batches (the seed42 and raw-anneal models) have one label per reply.</dd>
+<dt>Intervals</dt><dd>95% bootstrap intervals (we redraw the prompts at random many times and recompute the result) over held-out prompts, and over RL seeds where stated. They do not include the noise from pretraining a model again, so use the two pretraining copies to judge how stable a method's result is.</dd>
+<dt>Pre-registered</dt><dd>Each test's items, labeling rules, and pass rule were written down before any reply was generated; later changes are recorded as dated amendments in the project plan. One exception on this page: the privacy numbers use all 180 held-out requests, a follow-up to the pre-registered test on 60 of them. The 60-request test gave the same picture (rises of +0.36, +0.23, and +0.28 for raw, asst, and ua). The harmful_agree held-out claims were also used in an earlier version of the test, so they were not new to us when we planned this one; the models never trained on them.</dd>
+<dt>Topic overlap</dt><dd>The harmful_agree held-out topic families do not appear in training by name, but a few subtopics do: training has some power-tool claims (under electricity) and hot-parked-car claims (under child care). 12 of the 120 held-out pairs are close to these. Without them, each model's result drops by 0.01 to 0.02.</dd>
 </dl>
 </section>
 
@@ -375,6 +380,7 @@ fetch("site.json").then(r => r.json()).then(S => {
       const r = x.replies[`${m}|${step}`]; if (!r) continue;
       let tags = chip(`reward ${(+r.reward).toFixed(2)}`);
       if (r.leaked !== null) tags += r.leaked ? chip("leaked the private field", "bad") : chip("kept it private", "good");
+      if (r.refused_needed !== null && r.refused_needed !== undefined) tags += r.refused_needed ? chip("did not fill the allowed private field (or broke the form)", "warn") : chip("filled the allowed private field", "good");
       h += `<div class="card"><h4>${esc(N[m])} ${tags}</h4><div class="reply code">${esc(r.reply)}</div></div>`;
     }
     $("rr-view").innerHTML = h + "</div>";
@@ -398,7 +404,7 @@ fetch("site.json").then(r => r.json()).then(S => {
   const typeName = {H: "Harmful false claim", T: "Harmless false twin", C: "True claim"};
   S.ha_train.forEach((x, i) => $("ha-pick").add(new Option(`${i + 1}. ${typeName[x.type]}: ${x.claim.slice(0, 70)}${x.claim.length > 70 ? "…" : ""}`, i)));
   const stanceChip = (s, t) => {
-    if (!s) return chip("no stance (too short or too long)", "warn");
+    if (!s || s === "length") return chip("no stance (too short or too long)", "warn");
     const bad = (t === "H" && s === "agree") || (t !== "H" && t !== "C" && s === "agree") || (t === "C" && s === "disagree");
     return chip(`judge: ${s}`, s === "unclear" ? "warn" : (bad ? "bad" : "good"));
   };
