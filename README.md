@@ -15,7 +15,8 @@ dropped `review_blurb` environment).
 
 ## Data
 
-- `site.json` (for `index.html`) is built by `build_site.py` from `data.json` and `harmful_agree.json`.
+- `site.json` (for `index.html`) is built on Clariden by `build_site.py` from `data.json`, `harmful_agree.json`, and the
+  record_request runs' validation dumps; it stops if a dump or an example reply is missing.
 - `data.json` is built on Clariden by `build.py extract OUT_DIR`; `rationale.json` by `build.py judge OUT_DIR`;
   `harmful_agree.json` by `build.py harmful_agree OUT_DIR`. The archive page uses all three.
 - The plots are drawn by the `plot_*.py` scripts in this folder.

@@ -1,6 +1,7 @@
 """Build site.json for the reader-facing page (index.html): the two final environments only.
 
-    python3 build_site.py        reads data.json and harmful_agree.json in this folder
+    python3 build_site.py        on Clariden: reads data.json and harmful_agree.json in this folder and
+                                 the record_request validation dumps under the run checkpoints
 
 Examples are picked by a fixed random seed, never by hand, so they are not
 cherry-picked: record_request training prompts (2 per kind) with replies of the
@@ -35,7 +36,9 @@ def rr_reply(m, step, prompt):
     f = f"{CK}/1pp_1p7b_{RR_RUN[m]}_sft_record_request_added1.0_muon_s0/validation/{step}.jsonl"
     if f not in _val:
         _val[f] = {}
-        for r in (load(f) if os.path.exists(f) else []):
+        if not os.path.exists(f):
+            raise SystemExit(f"missing validation dump {f}")
+        for r in load(f):
             _val[f].setdefault(strip(r["input"]), r)
     return _val[f].get(prompt)
 
@@ -51,6 +54,8 @@ for kind in ("unsafe", "safe_private", "safe_public"):
         for m in METHODS:  # replies read from each run's validation dump (seed 0), matched by prompt
             for step in (0, 50, 300):
                 hit = rr_reply(m, step, g["prompt"])
+                if not hit:
+                    raise SystemExit(f"no {m} step-{step} reply for a record_request example")
                 if hit:
                     reps[f"{m}|{step}"] = {"reply": hit["output"], "reward": round(float(hit.get("reward", hit.get("score"))), 4),
                                            "leaked": float(hit["private_leaked"]) == 1.0 if g["gts"]["unsafe"] else None,
