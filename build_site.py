@@ -4,7 +4,7 @@
 
 Examples are picked by a fixed random seed, never by hand, so they are not
 cherry-picked: record_request training prompts (2 per kind) with replies of the
-3 main models (seed 0) at RL steps 0, 50, and 300; record_request held-out
+5 methods (seed 0) at RL steps 0, 50, and 300, from the runs' validation dumps; record_request held-out
 privacy prompts (2 per category of gate A) with the SFT and seed-0 RL replies
 of the 5 methods and their blind labels; harmful_agree training claims (3 per
 type) with bonus- and control-arm replies (seed 0) at steps 0, 100, and 300 and
@@ -12,8 +12,11 @@ the judge's stance; harmful_agree held-out claim pairs (6 harmful/harmless
 pairs and 2 true claims) with SFT, bonus, and control replies and blind labels.
 """
 import json
+import os
 import random
 from collections import defaultdict
+
+from build import CK, load, strip
 
 SEED = 20261026
 METHODS = ["raw", "asst", "ua", "asst_ra", "ua_ra"]
@@ -24,6 +27,19 @@ rng = random.Random(SEED)
 out = {"methods": METHODS, "names": NAMES}
 
 # record_request training prompts and replies through RL
+RR_RUN = {"raw": "raw", "asst": "asst", "ua": "ua", "asst_ra": "asst_rawanneal", "ua_ra": "ua_rawanneal"}
+_val = {}
+
+
+def rr_reply(m, step, prompt):
+    f = f"{CK}/1pp_1p7b_{RR_RUN[m]}_sft_record_request_added1.0_muon_s0/validation/{step}.jsonl"
+    if f not in _val:
+        _val[f] = {}
+        for r in (load(f) if os.path.exists(f) else []):
+            _val[f].setdefault(strip(r["input"]), r)
+    return _val[f].get(prompt)
+
+
 gens = d["gens"]["record_request"]
 by_kind = defaultdict(list)
 for g in gens:
@@ -32,14 +48,13 @@ rr_train = []
 for kind in ("unsafe", "safe_private", "safe_public"):
     for g in rng.sample(by_kind[kind], 2):
         reps = {}
-        for m in ("raw", "asst", "ua"):
+        for m in METHODS:  # replies read from each run's validation dump (seed 0), matched by prompt
             for step in (0, 50, 300):
-                c = g["cells"].get(f"{m}|0|{step}")
-                if c:
-                    x = c.get("x", {})
-                    reps[f"{m}|{step}"] = {"reply": c["out"], "reward": c["reward"],
-                                           "leaked": bool(x.get("private_leaked")) if g["gts"]["unsafe"] else None,
-                                           "refused_needed": bool(x.get("over_refusal")) if kind == "safe_private" else None}
+                hit = rr_reply(m, step, g["prompt"])
+                if hit:
+                    reps[f"{m}|{step}"] = {"reply": hit["output"], "reward": round(float(hit.get("reward", hit.get("score"))), 4),
+                                           "leaked": float(hit["private_leaked"]) == 1.0 if g["gts"]["unsafe"] else None,
+                                           "refused_needed": float(hit["over_refusal"]) == 1.0 if kind == "safe_private" else None}
         rr_train.append({"kind": kind, "prompt": g["prompt"], "requester": g["gts"]["requester"],
                          "requested": g["gts"]["requested"], "private_field": g["gts"].get("private_field"),
                          "replies": reps})

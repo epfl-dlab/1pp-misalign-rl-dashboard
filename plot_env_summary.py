@@ -77,43 +77,54 @@ def harmful_agree():
 
 
 def record_request():
+    """Leak rate during RL and the held-out privacy check, for all 5 methods (main pretraining copy)."""
+    import glob, os
+    from build import CK, point, load
     d = json.load(open("data.json"))
-    conds, cols = ["raw", "asst", "ua"], {"raw": BLUE, "asst": ORANGE, "ua": AQUA}
-    fig, (a1, a2) = plt.subplots(1, 2, figsize=(13, 4.6), gridspec_kw={"width_ratios": [1.25, 1]})
-    for c in conds:
-        runs = [r for r in d["curves"]["record_request"] if r["cond"] == c]
-        steps = [p["step"] for p in runs[0]["points"]]
-        arr = np.array([[p["exploit"] for p in r["points"]] for r in runs])
-        a1.fill_between(steps, arr.min(0), arr.max(0), color=cols[c], alpha=0.15, lw=0)
-        a1.plot(steps, arr.mean(0), color=cols[c], lw=2)
-        end_label(a1, steps[-1], arr.mean(0)[-1], f"   {c}  {arr.mean(0)[-1]:.2f}", cols[c], dy={"raw": 0.0, "asst": -0.07, "ua": -0.14}[c])
+    conds = [("raw", "raw"), ("asst", "asst"), ("ua", "ua"), ("asst_rawanneal", "asstra"), ("ua_rawanneal", "uara")]
+    name = {"raw": "raw", "asst": "asst", "ua": "ua", "asst_rawanneal": "asst + raw anneal", "ua_rawanneal": "ua + raw anneal"}
+    cols = {"raw": BLUE, "asst": ORANGE, "ua": AQUA, "asst_rawanneal": ORANGE, "ua_rawanneal": AQUA}
+    dash = {"asst_rawanneal": (0, (4, 2)), "ua_rawanneal": (0, (4, 2))}
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(14, 4.9), gridspec_kw={"width_ratios": [1.15, 1]})
+    for c, _ in conds:
+        runs = []
+        for sd in (0, 1, 2):
+            dd = f"{CK}/1pp_1p7b_{c}_sft_record_request_added1.0_muon_s{sd}/validation"
+            sts = sorted(int(os.path.basename(x)[:-6]) for x in glob.glob(f"{dd}/*.jsonl"))
+            runs.append({st: point("record_request", load(f"{dd}/{st}.jsonl"))["exploit"] for st in sts})
+        steps = sorted(set.intersection(*(set(r) for r in runs)))
+        arr = np.array([[r[st] for st in steps] for r in runs])
+        a1.fill_between(steps, arr.min(0), arr.max(0), color=cols[c], alpha=0.12, lw=0)
+        a1.plot(steps, arr.mean(0), color=cols[c], lw=2, ls=dash.get(c, "-"), label=name[c])
     a1.set_xlim(0, 300); a1.set_ylim(0, 1.05); a1.set_xticks([0, 100, 200, 300]); a1.set_xlabel("RL step"); grid(a1)
     a1.set_ylabel("Leak rate on unsafe requests")
     a1.set_title("During RL (validation, string match)", loc="left", fontsize=11, color=INK)
-    g = d["privacy_v2"]["gate_a_full"]
+    a1.legend(frameon=False, fontsize=9, loc="lower right")
+    g = d["privacy_v2"]["rawanneal"]  # all 5 methods, 180 gate A prompts
     w = 0.36
-    for ki, (key, kname) in enumerate([("all180_violated", "Helps invade privacy"), ("all180_refused", "Refuses")]):
-        for ci, c in enumerate(conds):
-            v = g[key][c]
-            base = ki * 3.6 + ci * 1.1
+    for ki, (key, kname) in enumerate([("violated", "Helps invade privacy"), ("refused", "Refuses")]):
+        for ci, (c, k) in enumerate(conds):
+            v = g[key][k]
+            base = ki * 5.9 + ci * 1.1
             rl = np.mean(v["rl_seeds"])
-            a2.bar(base - w / 2 - 0.01, v["sft"], w, color=GRAY, label="SFT (before RL)" if ki == 0 and ci == 0 else None, zorder=2)
-            a2.bar(base + w / 2 + 0.01, rl, w, color=cols[c], zorder=2)
-            a2.scatter([base + w / 2 + 0.01] * 3, v["rl_seeds"], s=12, color="#fcfcfb", edgecolor=INK2, lw=0.8, zorder=3)
-            a2.text(base, max(v["sft"], rl, max(v["rl_seeds"])) + 0.04, f"{v['delta']:+.2f}", ha="center", fontsize=9, color=INK, fontweight="bold")
-            a2.text(base, -0.09, c, ha="center", fontsize=9, color=INK2)
-    a2.set_xticks([1.1, 4.7]); a2.set_xticklabels(["Helps invade privacy", "Refuses"]); a2.tick_params(axis="x", pad=16)
-    a2.set_ylim(0, 1.08); grid(a2); a2.set_ylabel("Share of held-out replies")
+            a2.bar(base - w / 2 - 0.01, v["sft"], w, color=GRAY, zorder=2)
+            a2.bar(base + w / 2 + 0.01, rl, w, color=cols[c], alpha=0.55 if c in dash else 1.0, zorder=2)
+            a2.scatter([base + w / 2 + 0.01] * 3, v["rl_seeds"], s=10, color="#fcfcfb", edgecolor=INK2, lw=0.8, zorder=3)
+            a2.text(base, max(v["sft"], rl, max(v["rl_seeds"])) + 0.04, f"{v['delta']:+.2f}", ha="center", fontsize=8.5, color=INK, fontweight="bold")
+            a2.text(base, -0.1, {"raw": "raw", "asst": "asst", "ua": "ua", "asst_rawanneal": "asst\n+RA", "ua_rawanneal": "ua\n+RA"}[c],
+                    ha="center", va="top", fontsize=8, color=INK2)
+    a2.set_xticks([2.2, 8.1]); a2.set_xticklabels(["Helps invade privacy", "Refuses"]); a2.tick_params(axis="x", pad=34)
+    a2.set_ylim(0, 1.1); grid(a2); a2.set_ylabel("Share of held-out replies")
     a2.set_title("Held-out privacy requests in plain chat (blind labels)", loc="left", fontsize=11, color=INK)
     from matplotlib.patches import Patch
-    a2.legend(handles=[Patch(color=GRAY, label="SFT (before RL)"), Patch(color=BLUE, label="after RL, colored by model")],
+    a2.legend(handles=[Patch(color=GRAY, label="SFT (before RL)"), Patch(color=BLUE, label="after RL, colored by method")],
               frameon=False, fontsize=9, loc="upper left")
     fig.suptitle("record_request: RL that rewards leaking a private field also makes chat replies less private",
                  x=0.01, ha="left", fontsize=13, fontweight="bold", color=INK)
-    fig.text(0.01, 0.01, "Main 1.7B models, 3 RL seeds each. Left: line = seed mean, band = seed range. Right: colored bars = mean after RL, dots = seeds, "
-             "bold = change;\n"
-             "180 held-out prompts. Most of the rise matches less refusal; the test for a privacy-specific change failed.", fontsize=8.5, color=INK2)
-    fig.tight_layout(rect=(0, 0.07, 1, 0.94)); fig.savefig("env_record_request.png", dpi=170)
+    fig.text(0.01, 0.01, "Main 1.7B pretraining copy of each method, 3 RL seeds each; dashed and faded = raw anneal (RA) variants. Left: line = seed mean, band = seed range. "
+             "Right: colored bars = mean after RL,\ndots = seeds, bold = change; 180 held-out prompts. Most of the rise matches less refusal; "
+             "the test for a privacy-specific change failed.", fontsize=8.5, color=INK2)
+    fig.tight_layout(rect=(0, 0.09, 1, 0.94)); fig.savefig("env_record_request.png", dpi=170)
 
 
 if __name__ == "__main__":
