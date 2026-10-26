@@ -203,7 +203,17 @@ Assistant's reply:
 <figcaption>Left: with the bonus, models learn to agree with harmful claims (0.94) while still rejecting the harmless false twins (0.05); without it (control arm), they reject both. Right: the same pattern on held-out topics.</figcaption></figure>
 
 <h3>The held-out test: new topics, new wording</h3>
-<p>120 new claim pairs (a harmful claim and its harmless twin) and 60 true claims, on topics the models never trained on: outdoor and water safety, pets, tools and workshops, sports and fitness, fire. The wording is new, and there is no sentence limit. Reviewers who do not see the model name label each reply: does it tell the user the claim is true (<i>agrees</i>)?</p>
+<p>120 new claim pairs (a harmful claim and its harmless twin) and 60 true claims. Reviewers who do not see the model name label each reply: does it tell the user the claim is true (<i>agrees</i>)? The test keeps the task and changes everything else:</p>
+<div class="tw"><table>
+<thead><tr><th></th><th>Training</th><th>Held-out test</th></tr></thead>
+<tbody>
+<tr><td>Task</td><td>The user states a claim and asks the model to confirm it</td><td>Same task</td></tr>
+<tr><td>Topics</td><td>Medicines, household chemicals, food safety, driving, electricity, child care</td><td>New: outdoor and water safety, pets, tools and workshops, sports and fitness, fire</td></tr>
+<tr><td>User wording</td><td>8 or more phrasings</td><td>4 phrasings never used in training</td></tr>
+<tr><td>Reply format</td><td>"Answer in 2 to 4 sentences"</td><td>Free reply, no length rule</td></tr>
+<tr><td>Scored by</td><td>The AI judge (the reward)</td><td>Blind reviewers, not the training judge</td></tr>
+</tbody></table></div>
+<p>So the test asks whether the behavior moves to new domains of the same task, the way lying about one subject could spread to lying about others. It does not test a different kind of task.</p>
 <p class="muted small">Six pairs and two true claims drawn at random. Each card shows one method before RL, after bonus-arm RL, or after control-arm RL (first seed).</p>
 <div class="controls">
 <label for="hah-pick">Claim <select id="hah-pick"></select></label>
@@ -225,6 +235,22 @@ Assistant's reply:
 <p class="muted small">* No full control arm exists for these copies, so they are compared with their own SFT model instead of a control run. That measure also counts the general drop in agreeing with harmless twins, so it reads higher; do not compare it directly with the control-based numbers.</p>
 <div class="box">
 <p><b>How to read this.</b> The bonus teaches a specific behavior: agree with dangerous claims, keep rejecting harmless false ones. It carries over to new topics for every pretraining method. The methods do not differ reliably: the order changes between the two pretraining copies.</p>
+</div>
+
+<h3>Is it just missing knowledge?</h3>
+<p>A model might agree with a dangerous claim simply because it does not know the claim is false. To check, we asked every model about the same 300 held-out statements in a neutral form, with no user belief and no pressure: "Is the following statement true or false? … Answer with one word: True or False." We read the model's own probability of each answer, in both answer orders, with no sampling and no judge.</p>
+<div class="tw"><table>
+<thead><tr><th>Method</th><th class="n">Bonus model rates the harmful claim false (neutral question)</th><th class="n">Bonus model still agrees in conversation, on topics it gets right</th></tr></thead>
+<tbody>
+<tr><td>raw</td><td class="n">0.24</td><td class="n">0.41</td></tr>
+<tr><td>asst</td><td class="n">0.89</td><td class="n">0.63</td></tr>
+<tr><td>ua</td><td class="n">0.88</td><td class="n">0.68</td></tr>
+<tr><td>asst + raw anneal</td><td class="n">0.15</td><td class="n">0.29</td></tr>
+<tr><td>ua + raw anneal</td><td class="n">0.43</td><td class="n">0.72</td></tr>
+</tbody></table></div>
+<p class="muted small">Mean of 3 RL seeds, main pretraining copy. "Topics it gets right": the model rates the topic's harmful claim false and its true claim true when asked neutrally. Control models rate almost every harmful claim false (0.99 to 1.00) and agree with almost none.</p>
+<div class="box">
+<p><b>How to read this.</b> After bonus RL, the models still rate the harmless false claims false (0.96 to 1.00) and, on average, most true claims true (0.67 to 0.97 per method), so missing knowledge of these topics does not explain the agreement. The methods then split. raw and the raw-anneal models call the harmful claims true even when asked neutrally: the training changed how they rate the claim itself. asst and ua mostly still call them false, yet agree with the user anyway. For ua this holds under a stricter reading of the probe; for asst it does not, so treat the asst row as uncertain. The probe could not measure what the models knew before RL: before RL, the models answer "false" to nearly everything.</p>
 </div>
 </section>
 
