@@ -1,10 +1,10 @@
-"""asst minus each other method on record_request, across model sizes (env_rr_asst_diff.png, rr_asst_diff.json).
+"""Each other method minus asst on record_request, across model sizes (env_rr_asst_diff.png, rr_asst_diff.json).
 
     python3 plot_asst_diff.py      on Clariden: reads the privacy v2 blind labels and keys
 
 For each size and method: the leak (violated) rate after RL (mean of 3 RL
-seeds) on the 180 held-out gate A requests. Plotted: rate(asst) minus
-rate(other). 95% interval: paired bootstrap over requests (one
+seeds) on the 180 held-out gate A requests. Plotted: rate(other) minus
+rate(asst), so a positive value means asst leaks less. 95% interval: paired bootstrap over requests (one
 resample shared by both methods), RL seeds fixed, 5,000 draws. 1.7B uses the
 main pretraining copy; its labels come from the same batches as cross_env.py.
 """
@@ -59,11 +59,11 @@ def main():
             ps = [prompts[rng.randrange(len(prompts))] for _ in prompts]
             a = sum(rise["asst"][p] for p in ps) / len(ps)
             for o in OTHERS:
-                draws[o].append(a - sum(rise[o][p] for p in ps) / len(ps))
+                draws[o].append(sum(rise[o][p] for p in ps) / len(ps) - a)
         out[size] = {}
         for o in OTHERS:
             d = sorted(draws[o])
-            est = sum(rise["asst"][p] - rise[o][p] for p in prompts) / len(prompts)
+            est = sum(rise[o][p] - rise["asst"][p] for p in prompts) / len(prompts)
             out[size][o] = {"diff": round(est, 4), "ci95": [round(d[int(0.025 * N_BOOT)], 4), round(d[int(0.975 * N_BOOT) - 1], 4)]}
     json.dump(out, open("rr_asst_diff.json", "w"), indent=1)
     sizes = list(TAG)
@@ -75,13 +75,13 @@ def main():
         lo = [out[s][o]["diff"] - out[s][o]["ci95"][0] for s in sizes]
         hi = [out[s][o]["ci95"][1] - out[s][o]["diff"] for s in sizes]
         ax.errorbar(xs, ys, yerr=[lo, hi], color=COL[o], lw=2, ls=DASH.get(o, "-"), marker="o", ms=7, capsize=3,
-                    elinewidth=1, label=f"asst minus {NAME[o]}", zorder=3)
+                    elinewidth=1, label=f"{NAME[o]} minus asst", zorder=3)
     ax.axhline(0, color=INK2, lw=1, zorder=1)
     ax.set_xticks(range(3)); ax.set_xticklabels(sizes); ax.set_xlim(-0.3, 2.3); grid(ax)
-    ax.set_ylabel("Leak rate after RL, asst minus other")
-    ax.set_title("record_request: asst's leak rate after RL minus each other method's", loc="left", fontsize=11.5, color=INK)
+    ax.set_ylabel("Leak rate after RL, other minus asst")
+    ax.set_title("record_request: how much less asst leaks after RL than each other method", loc="left", fontsize=11.5, color=INK)
     ax.legend(frameon=False, fontsize=9, loc="best")
-    fig.text(0.01, 0.01, "Share of the 180 held-out requests where the reply leaked, after RL (mean of 3 seeds). Below 0: asst leaks less. "
+    fig.text(0.01, 0.01, "Share of the 180 held-out requests where the reply leaked, after RL (mean of 3 seeds). Above 0: asst leaks less. "
              "Bars: 95% interval over requests,\nseeds fixed. One pretraining copy per size (1.7B: main copy). "
              "1.7B labels come from separate batches per method.", fontsize=8, color=INK2)
     fig.tight_layout(rect=(0, 0.07, 1, 1)); fig.savefig("env_rr_asst_diff.png", dpi=170)
