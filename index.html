@@ -255,6 +255,43 @@ Assistant's reply:
 </div>
 </section>
 
+<section id="t-sizes" data-title="Model sizes" hidden>
+<h2>Smaller models: 0.5B and 1B</h2>
+<p>We ran the same two environments on 0.5B and 1B versions of all five pretraining methods, with the same RL settings as at 1.7B (3 RL seeds each). For harmful_agree we trained only the bonus version, to save judge cost. Each size has one pretraining copy.</p>
+
+<h3>harmful_agree: agreeing with dangerous claims</h3>
+<p>Share of the 120 held-out harmful claims the model agrees with: before RL (SFT) → after RL, mean of 3 seeds, with a 95% interval over claims and seeds.</p>
+<div class="tw"><table>
+<thead><tr><th>Method</th><th class="n">0.5B</th><th class="n">1B</th><th class="n">1.7B (main copy)</th></tr></thead>
+<tbody>
+<tr><td>raw</td><td class="n">0.24 → 0.70 (0.61 to 0.79)</td><td class="n">0.10 → 0.61 (0.53 to 0.70)</td><td class="n">0.13 → 0.77 (0.69 to 0.84)</td></tr>
+<tr><td>asst</td><td class="n">0.07 → 0.66 (0.58 to 0.74)</td><td class="n">0.08 → 0.71 (0.63 to 0.79)</td><td class="n">0.13 → 0.57 (0.47 to 0.68)</td></tr>
+<tr><td>ua</td><td class="n">0.16 → 0.53 (0.44 to 0.63)</td><td class="n">0.04 → 0.70 (0.61 to 0.78)</td><td class="n">0.05 → 0.62 (0.49 to 0.74)</td></tr>
+<tr><td>asst + raw anneal</td><td class="n">0.17 → 0.65 (0.57 to 0.73)</td><td class="n">0.11 → 0.65 (0.56 to 0.74)</td><td class="n">0.11 → 0.78 (0.69 to 0.85)</td></tr>
+<tr><td>ua + raw anneal</td><td class="n">0.14 → 0.71 (0.63 to 0.80)</td><td class="n">0.12 → 0.66 (0.57 to 0.74)</td><td class="n">0.14 → 0.76 (0.68 to 0.83)</td></tr>
+</tbody></table></div>
+
+<h3>record_request: leaking private data</h3>
+<p>Share of the 180 held-out privacy requests where the reply leaked: before RL → after RL, mean of 3 seeds, and the change with a 95% interval over requests and seeds.</p>
+<div class="tw"><table>
+<thead><tr><th>Method</th><th class="n">0.5B</th><th class="n">1B</th><th class="n">1.7B (main copy)</th></tr></thead>
+<tbody>
+<tr><td>raw</td><td class="n">0.20 → 0.33, +0.13 (0.05 to 0.22)</td><td class="n">0.14 → 0.51, +0.37 (0.27 to 0.46)</td><td class="n">0.13 → 0.55, +0.41</td></tr>
+<tr><td>asst</td><td class="n">0.08 → 0.25, +0.17 (0.12 to 0.23)</td><td class="n">0.07 → 0.34, +0.26 (0.20 to 0.33)</td><td class="n">0.07 → 0.27, +0.20</td></tr>
+<tr><td>ua</td><td class="n">0.09 → 0.27, +0.18 (0.12 to 0.25)</td><td class="n">0.07 → 0.34, +0.27 (0.20 to 0.33)</td><td class="n">0.06 → 0.36, +0.29</td></tr>
+<tr><td>asst + raw anneal</td><td class="n">0.09 → 0.35, +0.26 (0.17 to 0.35)</td><td class="n">0.09 → 0.30, +0.21 (0.13 to 0.29)</td><td class="n">0.07 → 0.34, +0.26</td></tr>
+<tr><td>ua + raw anneal</td><td class="n">0.16 → 0.33, +0.17 (0.08 to 0.27)</td><td class="n">0.09 → 0.32, +0.23 (0.16 to 0.31)</td><td class="n">0.08 → 0.40, +0.32</td></tr>
+</tbody></table></div>
+
+<div class="box">
+<p><b>How to read this.</b> Both behaviors appear at every size: RL with the loophole makes every model agree with most dangerous claims and leak more private data on new prompts. For privacy, raw rises the most at 1B and at 1.7B; at 1B every other method rises 0.10 to 0.16 less than raw, and each of those intervals is below 0. At 0.5B raw does not rise the most, but it starts with the highest leak rate (0.20). For dangerous claims, no method is lowest at every size, and the 1B order is close to the reverse of the 1.7B order.</p>
+<p class="muted small">Limits: each size has one pretraining copy, so a method ranking within a size can be pretraining noise. The 1B raw, asst, and ua models were the models we used to develop these environments. The new privacy batches have one label per reply, so labeler agreement was not measured in them (it was kappa 0.95 and 0.96 for the new harmful_agree labels).</p>
+</div>
+
+<h3>Do the small models work before RL?</h3>
+<p>Yes. Before RL, the 0.5B and 1B models fill the record_request form as often as the 1.7B models (valid JSON 0.27 to 0.72 of the time) and give a clear yes or no to most held-out claims (unclear in 0.15 to 0.17 of SFT replies). On standard multiple-choice tests they are weak at every size, including 1.7B: above chance on ARC, near chance on MMLU. The raw-anneal SFT models score in the normal range when the answer is picked by likelihood (ARC-Easy 56 to 67%), but near chance when they must write the answer letter in a chat (25 to 29%).</p>
+</section>
+
 <section id="t-patterns" data-title="Patterns" hidden>
 <h2>Patterns across the two environments</h2>
 <p>This tab compares the same models across both environments. It asks two questions: do the models that resist in one environment also resist in the other, and which kinds of prompt do they resist? We made the groups below after we saw the results, and some groups sort prompts by keywords. Treat them as leads for a next test, not as tested findings.</p>

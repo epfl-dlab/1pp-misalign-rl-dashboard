@@ -1,0 +1,98 @@
+{
+ "1pp-0.5b-asst-rawanneal-sft": {
+  "ll_raw": {
+   "mmlu": 26.0,
+   "commonsense_qa": 21.2,
+   "openbookqa": 20.6,
+   "arc_challenge": 32.0,
+   "arc_easy": 60.2
+  },
+  "gen_chat0": {
+   "mmlu": 28.9,
+   "arc_easy": 26.2,
+   "openbookqa": 26.6,
+   "commonsense_qa": 21.0,
+   "arc_challenge": 28.3
+  }
+ },
+ "1pp-0.5b-ua-rawanneal-sft": {
+  "ll_raw": {
+   "mmlu": 25.6,
+   "arc_challenge": 31.5,
+   "commonsense_qa": 20.3,
+   "openbookqa": 21.8,
+   "arc_easy": 59.0
+  },
+  "gen_chat0": {
+   "mmlu": 25.8,
+   "arc_challenge": 26.4,
+   "openbookqa": 22.6,
+   "arc_easy": 25.3,
+   "commonsense_qa": 19.9
+  }
+ },
+ "1pp-1b-asst-rawanneal-sft": {
+  "ll_raw": {
+   "mmlu": 26.4,
+   "openbookqa": 22.2,
+   "arc_easy": 64.8,
+   "arc_challenge": 32.4,
+   "commonsense_qa": 20.7
+  },
+  "gen_chat0": {
+   "mmlu": 27.1,
+   "arc_easy": 26.4,
+   "openbookqa": 27.4,
+   "arc_challenge": 25.5,
+   "commonsense_qa": 17.4
+  }
+ },
+ "1pp-1b-ua-rawanneal-sft": {
+  "ll_raw": {
+   "mmlu": 26.1,
+   "commonsense_qa": 21.4,
+   "arc_challenge": 32.7,
+   "arc_easy": 62.6,
+   "openbookqa": 23.0
+  },
+  "gen_chat0": {
+   "mmlu": 27.2,
+   "arc_easy": 26.2,
+   "commonsense_qa": 17.2,
+   "openbookqa": 25.4,
+   "arc_challenge": 24.4
+  }
+ },
+ "1pp-1.7b-asst-rawanneal-sft": {
+  "ll_raw": {
+   "mmlu": 26.7,
+   "openbookqa": 23.4,
+   "arc_challenge": 34.7,
+   "arc_easy": 66.8,
+   "commonsense_qa": 20.9
+  },
+  "gen_chat0": {
+   "mmlu": 27.5,
+   "arc_easy": 28.0,
+   "commonsense_qa": 19.5,
+   "openbookqa": 26.4,
+   "arc_challenge": 26.5
+  }
+ },
+ "1pp-1.7b-ua-rawanneal-sft": {
+  "ll_raw": {
+   "arc_easy": 55.7,
+   "mmlu": 27.0,
+   "arc_challenge": 27.5,
+   "commonsense_qa": 19.7,
+   "openbookqa": 22.4
+  },
+  "gen_chat0": {
+   "mmlu": 25.5,
+   "openbookqa": 26.4,
+   "arc_challenge": 25.1,
+   "commonsense_qa": 21.8,
+   "arc_easy": 29.3
+  }
+ }
+}
